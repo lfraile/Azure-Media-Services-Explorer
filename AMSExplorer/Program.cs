@@ -61,8 +61,12 @@ namespace AMSExplorer
         /// 
 
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
+            if (args.Length > 0)
+            {
+                System.Threading.Thread.CurrentThread.CurrentUICulture = new CultureInfo(args[0], false);
+            }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Mainform());
@@ -411,7 +415,6 @@ namespace AMSExplorer
                     var mp4AudioAssetFilesSize = mp4AssetFiles.OrderBy(f => f.ContentFileSize);
 
                     string mp4fileaudio = (mp4AudioAssetFilesName.Count() == 1) ? mp4AudioAssetFilesName.FirstOrDefault().Name : mp4AudioAssetFilesSize.FirstOrDefault().Name; // if there is one file with audio or AAC in the name then let's use it for the audio track
-
                     switchxml.Add(new XElement(ns + "audio", new XAttribute("src", mp4fileaudio), new XAttribute("title", "audioname")));
                 }
 
@@ -583,14 +586,14 @@ namespace AMSExplorer
         {
             Button buttonOk = new Button()
             {
-                Text = "OK",
+                Text = AMSExplorer.Properties.Resources.ButtonOK,
                 DialogResult = DialogResult.OK,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
 
             Button buttonCancel = new Button()
             {
-                Text = "Cancel",
+                Text = AMSExplorer.Properties.Resources.ButtonCancel,
                 DialogResult = DialogResult.Cancel,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
@@ -795,15 +798,15 @@ namespace AMSExplorer
             switch (protocol)
             {
                 case StreamingProtocol.FragmentedMP4:
-                    name = "Fragmented MP4 (Smooth)";
+                    name = AMSExplorer.Properties.Resources.Program_ReturnNameForProtocol_FragmentedMP4Smooth;
                     break;
 
                 case StreamingProtocol.RTMP:
-                    name = "RTMP";
+                    name = AMSExplorer.Properties.Resources.Program_ReturnNameForProtocol_RTMP;
                     break;
 
                 case StreamingProtocol.RTPMPEG2TS:
-                    name = "RTP/MPEG-2 Transport Stream";
+                    name = AMSExplorer.Properties.Resources.Program_ReturnNameForProtocol_RTPMPEG2TransportStream;
                     break;
             }
             return name;
@@ -915,6 +918,7 @@ namespace AMSExplorer
         public const string AzureMediaVideoThumbnails = "Azure Media Video Thumbnails";
         public const string AzureMediaVideoOCR = "Azure Media OCR";
         public const string AzureMediaContentModerator = "Azure Media Content Moderator";
+        public const string AzureMediaVideoAnnotator = "Azure Media Video Annotator";
 
         public const string NameconvInputasset = "{Input Asset Name}";
         public const string NameconvUploadasset = "{File Name}";
@@ -932,20 +936,10 @@ namespace AMSExplorer
         public const string NameconvToken = "{token}";
         public const string NameconvAsset = "{Asset Name}";
         public const string NameconvRedactionMode = "{Redaction Mode}";
+        public const string NameconvModerationMode = "{Moderation Mode}";
+
 
         public const string endline = "\r\n";
-
-        public const string TabAssets = "Assets"; // name of the Assets tab
-        public const string TabTransfers = "Transfers"; // name of the Transfers tab
-        public const string TabJobs = "Jobs"; // name of the Jobs tab
-        public const string TabLive = "Live"; // name of the Live tab
-        public const string LabelProgram = "Programs"; // name of the Live tab
-        public const string LabelChannel = "Channels"; // name of the Live tab
-        public const string TabProcessors = "Processors"; // name of the Processors tab
-        public const string TabOrigins = "Streaming endpoints"; // name of the Origins tab
-        public const string TabStorage = "Storage"; // name of the Origins tab
-        public const string TabFilters = "Global filters"; // name of the filters tab
-        public const string TabLog = "Log"; // name of the Jobs tab
 
         public const string PathPremiumWorkflowFiles = @"\PremiumWorkflowSamples\";
         public const string PathAMEFiles = @"\AMEPresetFiles\";
@@ -1025,6 +1019,8 @@ namespace AMSExplorer
         public const string LinkOverlayMES = "https://docs.microsoft.com/en-us/azure/media-services/media-services-advanced-encoding-with-mes#overlay";
         public const string LinkCroppingMES = "https://docs.microsoft.com/en-us/azure/media-services/media-services-crop-video";
         public const string LinkMESAdvFeatures = "https://docs.microsoft.com/en-us/azure/media-services/media-services-advanced-encoding-with-mes";
+        public const string LinkMoreInfoSE = "https://docs.microsoft.com/en-us/azure/media-services/media-services-streaming-endpoints-overview";
+        public const string LinkMESAutoGenPreset = "https://docs.microsoft.com/en-us/azure/media-services/media-services-autogen-bitrate-ladder-with-mes";
 
         public const string LinkMoreInfoAzCopy = "https://docs.microsoft.com/en-us/azure/storage/storage-use-azcopy";
 
@@ -1049,7 +1045,7 @@ namespace AMSExplorer
         public const string LinkMoreInfoStorageVersioning = "https://msdn.microsoft.com/en-us/library/azure/dd894041.aspx";
         public const string LinkMoreInfoStorageAnalytics = "https://msdn.microsoft.com/library/azure/hh343258.aspx";
         public const string LinkMoreInfoFairPlay = "https://docs.microsoft.com/en-us/azure/media-services/media-services-protect-hls-with-fairplay";
-        public const string LinkMoreInfoTelemetry = "https://docs.microsoft.com/en-us/azure/media-services/media-services-telemetry";
+        public const string LinkMoreInfoTelemetry = "https://docs.microsoft.com/en-us/azure/media-services/media-services-telemetry-overview";
 
         public const string LinkMoreYammerAMSPreview = "https://www.yammer.com/azureadvisors/#/threads/inGroup?type=in_group&feedId=3165917";
         public const string LinkMoreInfoMotionDetection = "https://docs.microsoft.com/en-us/azure/media-services/media-services-motion-detection";
@@ -1084,6 +1080,11 @@ namespace AMSExplorer
         public const string FaceRedactionCombined = "combined";
         public const string FaceRedactionFirstPass = "analyze";
         public const string FaceRedactionSecondPass = "redact";
+
+        public const string ContentModerationBalance = "Balance";
+        public const string ContentModerationQuality = "Quality";
+        public const string ContentModerationSpeed = "Speed";
+
 
         public const string VideoThumbnailsOutputVideo = "video";
         public const string VideoThumbnailsOutputImage = "image";
@@ -1324,11 +1325,11 @@ namespace AMSExplorer
                             case (Constants.AzureMediaEncoder):
                             case (Constants.AzureMediaEncoderStandard):
                                 // AME or Media Standard Encoding task
-                                pricetask = lsizeoutputprocessed * (double)Properties.Settings.Default.AMEPrice;
+                                //pricetask = lsizeoutputprocessed * (double)Properties.Settings.Default.AMEPrice;
                                 break;
                             case (Constants.AzureMediaEncoderPremiumWorkflow):
                                 // Premium Workflow Encoding task
-                                pricetask = lsizeoutputprocessed * (double)Properties.Settings.Default.MEPremiumWorkflowPrice;
+                                //pricetask = lsizeoutputprocessed * (double)Properties.Settings.Default.MEPremiumWorkflowPrice;
                                 break;
                             case (MediaProcessorNames.StorageDecryption):
                             case (MediaProcessorNames.WindowsAzureMediaEncryptor):
@@ -1580,13 +1581,11 @@ namespace AMSExplorer
                         {
                             TaskSizeAndPrice MyTaskSizePrice = CalculateTaskSizeAndPrice(task, (CloudMediaContext)theJob.GetMediaContext());
 
-
-
                             if (theJob.Tasks.Count > 1) // only display for the task if there are several tasks
                             {
                                 sb.AppendLine("Input size processed by the task  : " + ((MyTaskSizePrice.InputSize != -1) ? AssetInfo.FormatByteSize(MyTaskSizePrice.InputSize) : cannotcalc));
                                 sb.AppendLine("Output size processed by the task : " + ((MyTaskSizePrice.OutputSize != -1) ? AssetInfo.FormatByteSize(MyTaskSizePrice.OutputSize) : cannotcalc));
-                                sb.AppendLine("Total size processed by the task  : " + ((MyTaskSizePrice.InputSize != -1 && MyTaskSizePrice.OutputSize != -1) ? AssetInfo.FormatByteSize(MyTaskSizePrice.InputSize + MyTaskSizePrice.OutputSize) : cannotcalc));
+                                //sb.AppendLine("Total size processed by the task  : " + ((MyTaskSizePrice.InputSize != -1 && MyTaskSizePrice.OutputSize != -1) ? AssetInfo.FormatByteSize(MyTaskSizePrice.InputSize + MyTaskSizePrice.OutputSize) : cannotcalc));
 
                                 if (MyTaskSizePrice.Price >= 0)
                                 {
@@ -1606,10 +1605,13 @@ namespace AMSExplorer
                     sb.AppendLine("Output size processed by the job : " + ((MyJobSizePrice.OutputSize != -1) ? AssetInfo.FormatByteSize(MyJobSizePrice.OutputSize) : cannotcalc));
                     sb.AppendLine("Total size processed by the job  : " + ((MyJobSizePrice.InputSize != -1 && MyJobSizePrice.OutputSize != -1) ? AssetInfo.FormatByteSize(MyJobSizePrice.InputSize + MyJobSizePrice.OutputSize) : cannotcalc));
 
+                    /*
                     if (MyJobSizePrice.Price != -1)
                     {
                         sb.AppendLine(string.Format("Estimated cost of the job        : {0} {1:0.00}", Properties.Settings.Default.Currency, MyJobSizePrice.Price));
                     }
+                    */
+
                     sb.AppendLine("");
                     sb.AppendLine(section);
                     sb.AppendLine(" END OF JOB REPORT");
@@ -1631,10 +1633,15 @@ namespace AMSExplorer
     public class AssetInfo
     {
         private List<IAsset> SelectedAssets;
-        public const string Type_Workflow = "Workflow";
-        public const string Type_LiveArchive = "Live Archive";
-        public const string Type_Thumbnails = "Thumbnails";
         public const string Type_Empty = "(empty)";
+        public const string Type_Workflow = "Workflow";
+        public const string Type_Single = "Single Bitrate MP4";
+        public const string Type_Multi = "Multi Bitrate MP4";
+        public const string Type_Smooth = "Smooth Streaming";
+        public const string Type_LiveArchive = "Live Archive";
+        public const string Type_Fragmented = "Pre-fragmented";
+        public const string Type_AMSHLS = "Media Services HLS";
+        public const string Type_Thumbnails = "Thumbnails";
         public const string _prog_down_https_SAS = "Progressive Download URLs (SAS)";
         public const string _prog_down_http_streaming = "Progressive Download URLs (SE)";
         public const string _hls_v4 = "HLS v4  URL";
@@ -1666,6 +1673,7 @@ namespace AMSExplorer
             SelectedAssets.Add(asset);
         }
 
+
         public IEnumerable<Uri> GetValidURIs()
         {
             var _context = SelectedAssets.FirstOrDefault().GetMediaContext();
@@ -1681,7 +1689,7 @@ namespace AMSExplorer
                     _context
                         .StreamingEndpoints
                         .AsEnumerable()
-                          .Where(o => (o.State == StreamingEndpointState.Running) && (o.ScaleUnits > 0))
+                          .Where(o => (o.State == StreamingEndpointState.Running) && (StreamingEndpointInformation.CanDoDynPackaging(o)))
                           .OrderByDescending(o => o.CdnEnabled)
                         .Select(
                             o =>
@@ -1696,7 +1704,6 @@ namespace AMSExplorer
                 return null;
             }
         }
-
 
         public static IEnumerable<Uri> GetURIs(IAsset asset)
         {
@@ -2083,20 +2090,38 @@ namespace AMSExplorer
             return LocPubStatus;
         }
 
+        static public TimeSpan ReturnTimeSpanOnGOP(ManifestTimingData data, TimeSpan ts)
+        {
+            var response = ts;
+            ulong timestamp = (ulong)(ts.TotalSeconds * data.TimeScale);
+
+            int i = 0;
+            foreach (var t in data.TimestampList)
+            {
+                if (t < timestamp && i < (data.TimestampList.Count - 1) && timestamp < data.TimestampList[i + 1])
+                {
+                    response = TimeSpan.FromSeconds((double)t / (double)data.TimeScale);
+                    break;
+                }
+                i++;
+            }
+            return response;
+        }
+
 
         static public ManifestTimingData GetManifestTimingData(IAsset asset)
         // Parse the manifest and get data from it
         {
-            ManifestTimingData response = new ManifestTimingData() { IsLive = false, Error = false, TimestampOffset = 0 };
+            ManifestTimingData response = new ManifestTimingData() { IsLive = false, Error = false, TimestampOffset = 0, TimestampList = new List<ulong>(), DiscontinuityDetected = false };
 
             try
             {
                 ILocator mytemplocator = null;
-                Uri myuri = AssetInfo.GetValidOnDemandURI(asset);
+                Uri myuri = GetValidOnDemandURI(asset);
                 if (myuri == null)
                 {
-                    mytemplocator = AssetInfo.CreatedTemporaryOnDemandLocator(asset);
-                    myuri = AssetInfo.GetValidOnDemandURI(asset);
+                    mytemplocator = CreatedTemporaryOnDemandLocator(asset);
+                    myuri = GetValidOnDemandURI(asset);
                 }
                 if (myuri != null)
                 {
@@ -2123,28 +2148,51 @@ namespace AMSExplorer
                         response.TimestampOffset = 0; // no timestamp, so it should be 0
                     }
 
+                    ulong totalduration = 0;
+                    ulong durationpreviouschunk = 0;
+                    ulong durationchunk;
+                    int repeatchunk;
+                    foreach (var chunk in videotrack.Elements("c"))
+                    {
+                        durationchunk = chunk.Attribute("d") != null ? ulong.Parse(chunk.Attribute("d").Value) : 0;
+                        repeatchunk = chunk.Attribute("r") != null ? int.Parse(chunk.Attribute("r").Value) : 1;
+                        totalduration += durationchunk * (ulong)repeatchunk;
+
+                        if (chunk.Attribute("t") != null)
+                        {
+                            //totalduration = ulong.Parse(chunk.Attribute("t").Value) - response.TimestampOffset; // new timestamp, perhaps gap in live stream....
+                            ulong tvalue = ulong.Parse(chunk.Attribute("t").Value);
+                            response.TimestampList.Add(tvalue);
+                            if (tvalue != response.TimestampOffset)
+                            {
+                                totalduration = tvalue - response.TimestampOffset; // Discountinuity ? We calculate the duration from the offset
+                                response.DiscontinuityDetected = true; // let's flag it
+                            }
+                        }
+                        else
+                        {
+                            response.TimestampList.Add(response.TimestampList[response.TimestampList.Count() - 1] + durationpreviouschunk);
+                        }
+
+                        for (int i = 1; i < repeatchunk; i++)
+                        {
+                            response.TimestampList.Add(response.TimestampList[response.TimestampList.Count() - 1] + durationchunk);
+                        }
+
+                        durationpreviouschunk = durationchunk;
+
+                    }
+                    response.TimestampEndLastChunk = response.TimestampList[response.TimestampList.Count() - 1] + durationpreviouschunk;
+
                     if (smoothmedia.Attribute("IsLive") != null && smoothmedia.Attribute("IsLive").Value == "TRUE")
                     { // Live asset.... No duration to read (but we can read scaling and compute duration if no gap)
                         response.IsLive = true;
-
-                        long duration = 0;
-                        long r, d;
-                        foreach (var chunk in videotrack.Elements("c"))
-                        {
-                            if (chunk.Attribute("t") != null)
-                            {
-                                duration = long.Parse(chunk.Attribute("t").Value) - (long)response.TimestampOffset; // new timestamp, perhaps gap in live stream....
-                            }
-                            d = chunk.Attribute("d") != null ? long.Parse(chunk.Attribute("d").Value) : 0;
-                            r = chunk.Attribute("r") != null ? long.Parse(chunk.Attribute("r").Value) : 1;
-                            duration += d * r;
-                        }
-                        response.AssetDuration = TimeSpan.FromSeconds((double)duration / ((double)timescale));
+                        response.AssetDuration = TimeSpan.FromSeconds((double)totalduration / ((double)timescale));
                     }
                     else
                     {
-                        ulong duration = ulong.Parse(smoothmedia.Attribute("Duration").Value);
-                        response.AssetDuration = TimeSpan.FromSeconds((double)duration / ((double)timescale));
+                        //totalduration = ulong.Parse(smoothmedia.Attribute("Duration").Value);
+                        response.AssetDuration = TimeSpan.FromSeconds((double)totalduration / ((double)timescale));
                     }
                 }
                 else
@@ -2153,12 +2201,13 @@ namespace AMSExplorer
                 }
                 if (mytemplocator != null) mytemplocator.Delete();
             }
-            catch
+            catch (Exception ex)
             {
                 response.Error = true;
             }
             return response;
         }
+
 
         public class ManifestSegmentData
         {
@@ -2347,7 +2396,7 @@ namespace AMSExplorer
             switch (asset.AssetType)
             {
                 case AssetType.MediaServicesHLS:
-                    type = "Media Services HLS";
+                    type = Type_AMSHLS;
                     break;
 
                 case AssetType.MP4:
@@ -2356,22 +2405,33 @@ namespace AMSExplorer
                 case AssetType.MultiBitrateMP4:
                     var mp4files = AssetFiles.Where(f => f.Name.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)).ToArray();
                     number = mp4files.Count();
-                    type = number == 1 ? "Single Bitrate MP4" : "Multi Bitrate MP4";
+                    type = number == 1 ? Type_Single : Type_Multi;
                     break;
 
                 case AssetType.SmoothStreaming:
-                    type = "Smooth Streaming";
+                    type = Type_Smooth;
                     var cfffiles = AssetFiles.Where(f => f.Name.EndsWith(".ismv", StringComparison.OrdinalIgnoreCase) || f.Name.EndsWith(".isma", StringComparison.OrdinalIgnoreCase)).ToArray();
                     number = cfffiles.Count();
-                    //if (number == 0 && asset.AssetFiles.Count() > 2)
 
                     if (number == 0
                         && AssetFiles.Where(f => f.Name.EndsWith(".ism", StringComparison.OrdinalIgnoreCase) || f.Name.EndsWith(".ismc", StringComparison.OrdinalIgnoreCase)).Count() == 2
-                        && (AssetFiles.Where(f => f.AssetFileOptions == AssetFileOptions.Fragmented).Count() == AssetFiles.Count - 2)
+
                         )
                     {
-                        number = AssetFiles.Count - 2;  // tracks - 2 manifest files
-                        type = Type_LiveArchive;
+                        var fragmentedFilesCount = AssetFiles.Where(f => f.AssetFileOptions == AssetFileOptions.Fragmented).Count();
+                        if (fragmentedFilesCount == AssetFiles.Count - 2)
+                        {
+                            number = AssetFiles.Count - 2;  // tracks - 2 manifest files
+                            type = Type_LiveArchive;
+                        }
+                        else if ((fragmentedFilesCount == AssetFiles.Count - 4)
+                            &&
+                            AssetFiles.Where(f => f.Name.EndsWith("_manifest.xml", StringComparison.OrdinalIgnoreCase) || f.Name.EndsWith("_metadata.xml", StringComparison.OrdinalIgnoreCase)).Count() == 2
+                            )
+                        {
+                            number = AssetFiles.Count - 4;  // tracks - 4 manifest files
+                            type = Type_Fragmented;
+                        }
                     }
                     break;
 
@@ -2379,7 +2439,7 @@ namespace AMSExplorer
                     string ext;
                     string pr = string.Empty;
 
-                    if (assetfilescount == 0) return "(empty)";
+                    if (assetfilescount == 0) return Type_Empty;
 
                     if (assetfilescount == 1)
                     {
@@ -2599,6 +2659,41 @@ namespace AMSExplorer
             else return null;
         }
 
+        public static long? Inverse_FormatByteSize(string mystring)
+        {
+            var sizes = new List<unitSize> {
+                  new unitSize() { unitn = "B", mult = (long)1 },
+                  new unitSize(){ unitn = "KB", mult = (long)1024 },
+                  new unitSize(){ unitn = "MB", mult = (long)1024*1024 },
+                  new unitSize(){ unitn = "GB", mult = (long)1024*1024*1024 },
+                  new unitSize(){ unitn = "TB", mult = (long)1024*1024*1024*1024 },
+                  new unitSize(){ unitn = "PB", mult = (long)1024*1024*1024 *1024*1024 },
+                  new unitSize(){ unitn = "EB", mult = (long)1024*1024*1024 *1024*1024*1024 }
+                  };
+
+            if (sizes.Any(s => mystring.EndsWith(" " + s.unitn)))
+            {
+                var val = mystring.Substring(0, mystring.Length - 2).Trim();
+                try
+                {
+                    var valdouble = double.Parse(val);
+                    var myunit = mystring.Substring(mystring.Length - 2, 2).Trim();
+                    var mymult = sizes.Where(s => s.unitn == myunit).FirstOrDefault().mult;
+                    return (long)(valdouble * mymult);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        public class unitSize
+        {
+            public string unitn { get; set; }
+            public long mult { get; set; }
+        }
 
 
         public static AssetProtectionType GetAssetProtection(IAsset MyAsset, CloudMediaContext _context)
@@ -3022,9 +3117,9 @@ namespace AMSExplorer
                                 playerurl += string.Format(Constants.AMPtokensyntax, tokenresult);
                             }
                         }
-                        else // format auto. If 0 Reserved Unit, and asset is smooth, let's force to smooth (player cannot get the dash stream for example)
+                        else // format auto. If classic se, and asset is smooth, let's force to smooth (player cannot get the dash stream for example)
                         {
-                            if (choosenSE.ScaleUnits == 0 && myasset != null && myasset.AssetType == AssetType.SmoothStreaming)
+                            if (!StreamingEndpointInformation.CanDoDynPackaging(choosenSE) && myasset != null && myasset.AssetType == AssetType.SmoothStreaming)
                                 playerurl += string.Format(Constants.AMPformatsyntax, "smooth");
                         }
 
@@ -3129,7 +3224,7 @@ namespace AMSExplorer
 
         internal static IStreamingEndpoint GetBestStreamingEndpoint(CloudMediaContext _context)
         {
-            IStreamingEndpoint SESelected = _context.StreamingEndpoints.ToList().Where(se => se.State == StreamingEndpointState.Running && se.ScaleUnits > 0).OrderBy(se => se.CdnEnabled).OrderBy(se => se.ScaleUnits).LastOrDefault();
+            IStreamingEndpoint SESelected = _context.StreamingEndpoints.AsEnumerable().Where(se => se.State == StreamingEndpointState.Running && StreamingEndpointInformation.CanDoDynPackaging(se)).OrderBy(se => se.CdnEnabled).OrderBy(se => se.ScaleUnits).LastOrDefault();
             if (SESelected == null) SESelected = _context.StreamingEndpoints.Where(se => se.Name == "default").FirstOrDefault();
 
             return SESelected;
@@ -3792,6 +3887,9 @@ namespace AMSExplorer
         public ulong? TimeScale { get; set; }
         public bool IsLive { get; set; }
         public bool Error { get; set; }
+        public List<ulong> TimestampList { get; set; }
+        public ulong TimestampEndLastChunk { get; set; }
+        public bool DiscontinuityDetected { get; set; }
     }
 
     public class SubClipTrimmingDataXMLSerialized
@@ -3943,6 +4041,7 @@ namespace AMSExplorer
         public TaskOptions TasksOptionsSetting { get; set; }
         public bool TasksOptionsSettingReadOnly { get; set; }
         public AssetCreationOptions OutputAssetsCreationOptions { get; set; }
+        public AssetFormatOption OutputAssetsFormatOption { get; set; }
     }
 
 
@@ -4029,26 +4128,76 @@ namespace AMSExplorer
         }
         public int Compare(object x, object y)
         {
-            int returnVal;
+            int returnVal = 0;
+            bool Error = false;
+
+            string sx = ((ListViewItem)x).SubItems[col].Text;
+            string sy = ((ListViewItem)y).SubItems[col].Text;
             // Determine whether the type being compared is a date type.
+
+            // Inverse_FormatByteSize
+            // let's compare if the field is a size format (512 B or 45 KB...)
+
+            // Parse the two objects passed as a parameter as a DateTime.
             try
             {
-                // Parse the two objects passed as a parameter as a DateTime.
-                System.DateTime firstDate =
-                        DateTime.Parse(((ListViewItem)x).SubItems[col].Text);
-                System.DateTime secondDate =
-                        DateTime.Parse(((ListViewItem)y).SubItems[col].Text);
-                // Compare the two dates.
-                returnVal = DateTime.Compare(firstDate, secondDate);
+                var firstSize = AssetInfo.Inverse_FormatByteSize(sx);
+                var secondSize = AssetInfo.Inverse_FormatByteSize(sy);
+                if (firstSize != null && secondSize != null)
+                {
+                    var firstSizel = (long)firstSize;
+                    var secondSizel = (long)secondSize;
+                    if (firstSizel < secondSizel)
+                        returnVal = -1;
+                    else if (firstSizel > secondSizel)
+                        returnVal = 1;
+                    else
+                        returnVal = 0;
+                }
+                else
+                {
+                    Error = true;
+                }
             }
-            // If neither compared object has a valid date format, compare
-            // as a string.
             catch
             {
-                // Compare the two items as a string.
-                returnVal = String.Compare(((ListViewItem)x).SubItems[col].Text,
-                            ((ListViewItem)y).SubItems[col].Text);
+                Error = true;
             }
+
+            if (Error)
+            {
+                /*
+                try
+                {
+                    // Parse the two objects passed as a parameter as a DateTime.
+                    System.DateTime firstDate =
+                            DateTime.Parse(sx); 
+                    System.DateTime secondDate =
+                            DateTime.Parse(sy);
+                    // Compare the two dates.
+                    returnVal = DateTime.Compare(firstDate, secondDate);
+                }
+                // If neither compared object has a valid date format, compare
+                // as a string.
+                catch
+                {
+                    // Compare the two items as a string.
+                    returnVal = String.Compare(sx, sy);
+                }
+                */
+
+                // Parse the two objects passed as a parameter as a DateTime.
+                DateTime firstDate, secondDate;
+                if (DateTime.TryParse(sx, out firstDate) && DateTime.TryParse(sy, out secondDate))
+                {
+                    returnVal = DateTime.Compare(firstDate, secondDate);
+                }
+                else
+                {
+                    returnVal = String.Compare(sx, sy);
+                }
+            }
+
             // Determine whether the sort order is descending.
             if (order == SortOrder.Descending)
                 // Invert the value returned by String.Compare.
@@ -4101,12 +4250,50 @@ namespace AMSExplorer
         }
         public int Compare(object x, object y)
         {
-            int returnVal;
-            // Determine whether the type being compared is a date type.
+            int returnVal = 0;
+            bool Error = false;
 
-            // Compare the two items as a string.
-            returnVal = String.Compare(((ListViewItem)x).SubItems[col].Text,
-                        ((ListViewItem)y).SubItems[col].Text);
+            string sx = ((ListViewItem)x).SubItems[col].Text;
+            string sy = ((ListViewItem)y).SubItems[col].Text;
+
+
+            // Inverse_FormatByteSize
+            // let's compare if the field is a size format (512 B or 45 KB...)
+
+            // Parse the two objects passed as a parameter as a DateTime.
+            try
+            {
+                var firstSize = AssetInfo.Inverse_FormatByteSize(sx);
+                var secondSize = AssetInfo.Inverse_FormatByteSize(sy);
+                if (firstSize != null && secondSize != null)
+                {
+                    var firstSizel = (long)firstSize;
+                    var secondSizel = (long)secondSize;
+                    if (firstSizel < secondSizel)
+                        returnVal = -1;
+                    else if (firstSizel > secondSizel)
+                        returnVal = 1;
+                    else
+                        returnVal = 0;
+
+                }
+                else
+                {
+                    Error = true;
+                }
+
+            }
+            catch
+            {
+                Error = true;
+            }
+
+            if (Error)
+            {
+                // Compare the two items as a string.
+                returnVal = String.Compare(sx, sy);
+            }
+
 
             // Determine whether the sort order is descending.
             if (order == SortOrder.Descending)

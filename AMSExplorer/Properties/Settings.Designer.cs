@@ -277,18 +277,6 @@ namespace AMSExplorer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1.99")]
-        public decimal AMEPrice {
-            get {
-                return ((decimal)(this["AMEPrice"]));
-            }
-            set {
-                this["AMEPrice"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("$")]
         public string Currency {
             get {
@@ -397,18 +385,6 @@ namespace AMSExplorer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("3.99")]
-        public decimal MEPremiumWorkflowPrice {
-            get {
-                return ((decimal)(this["MEPremiumWorkflowPrice"]));
-            }
-            set {
-                this["MEPremiumWorkflowPrice"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("3650")]
         public int DefaultLocatorDurationDaysNew {
             get {
@@ -464,18 +440,6 @@ namespace AMSExplorer.Properties {
             }
             set {
                 this["DisplayAssetAltIDinGrid"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.05")]
-        public decimal IndexingPricePerMin {
-            get {
-                return ((decimal)(this["IndexingPricePerMin"]));
-            }
-            set {
-                this["IndexingPricePerMin"] = value;
             }
         }
         
@@ -560,6 +524,66 @@ namespace AMSExplorer.Properties {
             }
             set {
                 this["MESPresetFilesCurrentFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool OutputAssetsAdaptiveStreamingFormat {
+            get {
+                return ((bool)(this["OutputAssetsAdaptiveStreamingFormat"]));
+            }
+            set {
+                this["OutputAssetsAdaptiveStreamingFormat"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.015")]
+        public decimal MESPricePerMin {
+            get {
+                return ((decimal)(this["MESPricePerMin"]));
+            }
+            set {
+                this["MESPricePerMin"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.035")]
+        public decimal MEPWPricePerMin {
+            get {
+                return ((decimal)(this["MEPWPricePerMin"]));
+            }
+            set {
+                this["MEPWPricePerMin"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HideTaskbarNotifications {
+            get {
+                return ((bool)(this["HideTaskbarNotifications"]));
+            }
+            set {
+                this["HideTaskbarNotifications"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.02")]
+        public decimal IndexingPricePerMin2 {
+            get {
+                return ((decimal)(this["IndexingPricePerMin2"]));
+            }
+            set {
+                this["IndexingPricePerMin2"] = value;
             }
         }
     }

@@ -41,6 +41,9 @@ namespace AMSExplorer
         ILocator _tempLocator = null; // for preview
         Mainform _mainform;
         bool backupCheckboxTrim = false; // used when user select reencode to save the status of trim checkbox
+        private string _buttonOk;
+        private string _labelAccurate;
+        private string _labeloutoutputasset;
 
         public JobOptionsVar JobOptions
         {
@@ -100,6 +103,8 @@ namespace AMSExplorer
                 // let's try to read asset timing
                 _parentassetmanifestdata = AssetInfo.GetManifestTimingData(myAsset);
 
+                labelDiscountinuity.Visible = _parentassetmanifestdata.DiscontinuityDetected;
+
                 if (!_parentassetmanifestdata.Error)  // we were able to read asset timings and not live
                 {
                     _timescale = timeControlStart.TimeScale = timeControlEnd.TimeScale = _parentassetmanifestdata.TimeScale;
@@ -150,6 +155,9 @@ namespace AMSExplorer
 
         private void Subclipping_Load(object sender, EventArgs e)
         {
+            _buttonOk = buttonOk.Text;
+            _labelAccurate = labelAccurate.Text;
+            _labeloutoutputasset = labeloutputasset.Text;
             moreinfoprofilelink.Links.Add(new LinkLabel.Link(0, moreinfoprofilelink.Text.Length, Constants.LinkMoreInfoSubClipAMSE));
             CheckIfErrorTimeControls();
             DisplayAccuracy();
@@ -503,11 +511,11 @@ namespace AMSExplorer
         {
             if (radioButtonArchiveAllBitrate.Checked || radioButtonArchiveTopBitrate.Checked)
             {
-                buttonOk.Text = ((string)buttonOk.Tag);
+                buttonOk.Text = _buttonOk;
             }
             else if (radioButtonClipWithReencode.Checked)
             {
-                buttonOk.Text = ((string)buttonOk.Tag) + "...";
+                buttonOk.Text = _buttonOk + "...";
             }
             else if (radioButtonAssetFilter.Checked)
             {
@@ -517,15 +525,15 @@ namespace AMSExplorer
 
         private void DisplayAccuracy()
         {
-            labelAccurate.Text = string.Format((labelAccurate.Tag as string), radioButtonClipWithReencode.Checked ? "Frame" : "GOP");
+            labelAccurate.Text = string.Format(_labelAccurate, radioButtonClipWithReencode.Checked ? "Frame" : "GOP");
 
             if (radioButtonAssetFilter.Checked)
             {
-                labeloutoutputasset.Text = "Asset Filter Name :";
+                labeloutputasset.Text = "Asset Filter Name :";
             }
             else
             {
-                labeloutoutputasset.Text = (string)labeloutoutputasset.Tag;
+                labeloutputasset.Text = _labeloutoutputasset;
             }
 
         }
@@ -574,6 +582,7 @@ namespace AMSExplorer
                 IAsset myAsset = _selectedAssets.FirstOrDefault();
 
                 Uri myuri = AssetInfo.GetValidOnDemandURI(myAsset);
+
                 if (myuri == null)
                 {
                     try
@@ -613,7 +622,7 @@ namespace AMSExplorer
             if (subclipConfig.Reencode) // reencode the clip
             {
                 var processor = Mainform.GetLatestMediaProcessorByName(Constants.AzureMediaEncoderStandard);
-                EncodingAMEStandard form2 = new EncodingAMEStandard(_context, new List<IAsset>(), processor.Version, _mainform, subclipConfig, disableOverlay: true)
+                EncodingMES form2 = new EncodingMES(_context, new List<IAsset>(), processor.Version, _mainform, subclipConfig, disableOverlay: true)
                 {
                     EncodingLabel = (_selectedAssets.Count > 1) ?
                                     string.Format("{0} asset{1} selected. You are going to submit {0} job{1} with 1 task.", _selectedAssets.Count, Program.ReturnS(_selectedAssets.Count), _selectedAssets.Count)
@@ -639,6 +648,7 @@ namespace AMSExplorer
                        form2.EncodingOutputAssetName,
                        new List<string>() { form2.EncodingConfiguration },
                        form2.JobOptions.OutputAssetsCreationOptions,
+                       form2.JobOptions.OutputAssetsFormatOption,
                        form2.JobOptions.TasksOptionsSetting,
                        form2.JobOptions.StorageSelected);
                 }
@@ -680,6 +690,7 @@ namespace AMSExplorer
                     this.EncodingOutputAssetName,
                     new List<string>() { subclipConfig.Configuration },
                     this.JobOptions.OutputAssetsCreationOptions,
+                    this.JobOptions.OutputAssetsFormatOption,
                     this.JobOptions.TasksOptionsSetting,
                     this.JobOptions.StorageSelected);
 

@@ -49,6 +49,7 @@ namespace AMSExplorer
             Properties.Settings.Default.AutoRefresh = checkBoxAutoRefresh.Checked;
             Properties.Settings.Default.AutoRefreshTime = Convert.ToInt16(comboBoxAutoRefreshTime.SelectedItem);
 
+            Properties.Settings.Default.OutputAssetsAdaptiveStreamingFormat = checkBoxUseAdaptiveStreamingFormat.Checked;
             Properties.Settings.Default.useProtectedConfiguration = checkBoxUseProtectedConfig.Checked;
             Properties.Settings.Default.useStorageEncryption = checkBoxUseStorageEncryption.Checked;
             Properties.Settings.Default.NbItemsDisplayedInGrid = Convert.ToInt16(comboBoxNbItems.SelectedItem.ToString());
@@ -63,9 +64,10 @@ namespace AMSExplorer
             Properties.Settings.Default.DefaultLocatorDurationDaysNew = (int)numericUpDownLocatorDuration.Value;
             Properties.Settings.Default.DefaultTokenDuration = (int)numericUpDownTokenDuration.Value;
             Properties.Settings.Default.ShowLivePremiumChannel = checkBoxShowPremiumLiveEncoding.Checked;
-            Properties.Settings.Default.AMEPrice = numericUpDownMESPrice.Value;
-            Properties.Settings.Default.MEPremiumWorkflowPrice = numericUpDownPremiumWorkflowPrice.Value;
-            Properties.Settings.Default.IndexingPricePerMin = numericUpDownIndexingPrice.Value;
+            Properties.Settings.Default.HideTaskbarNotifications = checkBoxHideTaskbarNotifications.Checked;
+            Properties.Settings.Default.MESPricePerMin = numericUpDownMESPrice.Value;
+            Properties.Settings.Default.MEPWPricePerMin = numericUpDownPremiumWorkflowPrice.Value;
+            Properties.Settings.Default.IndexingPricePerMin2 = numericUpDownIndexingPrice.Value;
             Properties.Settings.Default.Currency = textBoxCurrency.Text;
 
             Properties.Settings.Default.ffmpegPath = textBoxffmpegPath.Text;
@@ -88,9 +90,11 @@ namespace AMSExplorer
             checkBoxAutoRefresh.Checked = false;
             comboBoxAutoRefreshTime.SelectedItem = "60";
 
+            checkBoxUseAdaptiveStreamingFormat.Checked = false;
             checkBoxUseProtectedConfig.Checked = false;
             checkBoxUseStorageEncryption.Checked = false;
             checkBoxShowPremiumLiveEncoding.Checked = false;
+            checkBoxHideTaskbarNotifications.Checked = false;
 
             int indexc = comboBoxNbItems.Items.IndexOf("50");
             if (indexc == -1) indexc = 1; // not found!
@@ -103,9 +107,9 @@ namespace AMSExplorer
             textBoxCurrency.Text = "$";
             numericUpDownLocatorDuration.Value = 3650;
             numericUpDownTokenDuration.Value = 60;
-            numericUpDownMESPrice.Value = ((decimal)1.99);
-            numericUpDownPremiumWorkflowPrice.Value = ((decimal)3.99);
-            numericUpDownIndexingPrice.Value = ((decimal)0.05);
+            numericUpDownMESPrice.Value = ((decimal)0.015);
+            numericUpDownPremiumWorkflowPrice.Value = ((decimal)0.035);
+            numericUpDownIndexingPrice.Value = ((decimal)0.02);
 
             numericUpDownAssetAnalysisStart.Value = 10;
             numericUpDownAssetAnalysisStep.Value = 20;
@@ -142,6 +146,7 @@ namespace AMSExplorer
             checkBoxAutoRefresh.Checked = Properties.Settings.Default.AutoRefresh;
             comboBoxAutoRefreshTime.SelectedItem = Properties.Settings.Default.AutoRefreshTime.ToString();
 
+            checkBoxUseAdaptiveStreamingFormat.Checked = Properties.Settings.Default.OutputAssetsAdaptiveStreamingFormat;
             checkBoxUseProtectedConfig.Checked = Properties.Settings.Default.useProtectedConfiguration;
             checkBoxUseStorageEncryption.Checked = Properties.Settings.Default.useStorageEncryption;
 
@@ -153,14 +158,15 @@ namespace AMSExplorer
             numericUpDownLocatorDuration.Value = Properties.Settings.Default.DefaultLocatorDurationDaysNew;
             numericUpDownTokenDuration.Value = Properties.Settings.Default.DefaultTokenDuration;
             checkBoxShowPremiumLiveEncoding.Checked = Properties.Settings.Default.ShowLivePremiumChannel;
+            checkBoxHideTaskbarNotifications.Checked = Properties.Settings.Default.HideTaskbarNotifications;
 
             numericUpDownAssetAnalysisStart.Value = Properties.Settings.Default.AssetAnalysisStart;
             numericUpDownAssetAnalysisStep.Value = Properties.Settings.Default.AssetAnalysisStep;
 
             textBoxCurrency.Text = Properties.Settings.Default.Currency;
-            numericUpDownMESPrice.Value = Properties.Settings.Default.AMEPrice;
-            numericUpDownPremiumWorkflowPrice.Value = Properties.Settings.Default.MEPremiumWorkflowPrice;
-            numericUpDownIndexingPrice.Value = Properties.Settings.Default.IndexingPricePerMin;
+            numericUpDownMESPrice.Value = Properties.Settings.Default.MESPricePerMin;
+            numericUpDownPremiumWorkflowPrice.Value = Properties.Settings.Default.MEPWPricePerMin;
+            numericUpDownIndexingPrice.Value = Properties.Settings.Default.IndexingPricePerMin2;
 
             textBoxffmpegPath.Text = Properties.Settings.Default.ffmpegPath;
             textBoxVLCPath.Text = Properties.Settings.Default.VLCPath;

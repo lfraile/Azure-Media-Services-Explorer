@@ -324,17 +324,17 @@ namespace AMSExplorer
             try
             {
                 var channelMetrics = _context.ChannelMetrics.GetChannelMetrics(
-              currentConfig.EndPointAddress,
-                   _storagePassword,
-                   new Guid(_credentials.AccountId).ToString(),
-                   channel.Id,
-               _timerangeStart,
-               _timerangeEnd ?? DateTime.UtcNow.AddMinutes(5)
+                                                                                currentConfig.EndPointAddress,
+                                                                                _storagePassword,
+                                                                                new Guid(_credentials.AccountId).ToString(),
+                                                                                channel.Id,
+                                                                                _timerangeStart,
+                                                                                _timerangeEnd ?? DateTime.UtcNow.AddMinutes(5)
                );
 
                 foreach (var cHB in channelMetrics.OrderByDescending(x => x.ObservedTime))
                 {
-                    if (!showErrors || (showErrors && (cHB.OverlapCount > 0 || cHB.DiscontinuityCount > 0)))
+                    if (!showErrors || (showErrors && !cHB.Healthy))
                     {
                         dataGridViewTelemetry.Rows.Add(
                             radioButtonLocal.Checked ? cHB.ObservedTime.ToLocalTime() : cHB.ObservedTime.ToUniversalTime(),

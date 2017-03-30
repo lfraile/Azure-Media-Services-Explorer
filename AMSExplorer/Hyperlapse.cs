@@ -37,6 +37,7 @@ namespace AMSExplorer
     {
         private CloudMediaContext _context;
         private string _processorVersion;
+        private string _labelWarningJSON;
 
         public string HyperlapseInputAssetName
         {
@@ -136,6 +137,8 @@ namespace AMSExplorer
 
         private void Hyperlapse_Load(object sender, EventArgs e)
         {
+            _labelWarningJSON = labelWarningJSON.Text;
+
             moreinfoprofilelink.Links.Add(new LinkLabel.Link(0, moreinfoprofilelink.Text.Length, Constants.LinkMoreInfoHyperlapse));
             linkLabelHowItWorks.Links.Add(new LinkLabel.Link(0, moreinfoprofilelink.Text.Length, Constants.LinkHowItWorksHyperlapse));
             comboBoxFrameRate.SelectedIndex = 2;
@@ -272,7 +275,7 @@ namespace AMSExplorer
                 }
                 catch (Exception ex)
                 {
-                    labelWarningJSON.Text = string.Format((string)labelWarningJSON.Tag, ex.Message);
+                    labelWarningJSON.Text = string.Format(_labelWarningJSON, ex.Message);
                     Error = true;
                 }
             }
@@ -284,7 +287,7 @@ namespace AMSExplorer
                 }
                 catch (Exception ex)
                 {
-                    labelWarningJSON.Text = string.Format("Error in XML data: {0}", ex.Message);
+                    labelWarningJSON.Text = string.Format(AMSExplorer.Properties.Resources.EncodingMES_textBoxConfiguration_TextChanged_ErrorInXMLData0, ex.Message);
                     Error = true;
                 }
             }

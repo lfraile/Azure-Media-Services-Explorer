@@ -41,10 +41,10 @@ namespace AMSExplorer
         private bool initPhase = true;
 
         public readonly List<Item> VideOCRLanguages = new List<Item> {
-            new Item("Undefined", ""),
+            new Item("AutoDetect", ""),
             new Item("Arabic", "Arabic"),
-            new Item("Chinese Simplified", "Chinese Simplified"),
-            new Item("Chinese Traditional", "ZhCn"),
+            new Item("Chinese Simplified", "ChineseSimplified"),
+            new Item("Chinese Traditional", "ChineseTraditional"),
             new Item("Czech", "Czech"),
             new Item("Danish", "Danish"),
             new Item("Dutch", "Dutch"),
@@ -62,8 +62,8 @@ namespace AMSExplorer
             new Item("Portuguese", "Portuguese"),
             new Item("Romanian", "Romanian"),
             new Item("Russian", "Russian"),
-            new Item("Serbian Cyrillic", "Serbian Cyrillic"),
-            new Item("Serbian Latin", "Serbian Latin"),
+            new Item("Serbian Cyrillic", "SerbianCyrillic"),
+            new Item("Serbian Latin", "SerbianLatin"),
             new Item("Slovak", "Slovak"),
             new Item("Spanish", "Spanish"),
             new Item("Swedish", "Swedish"),
@@ -79,6 +79,7 @@ namespace AMSExplorer
             new Item("Right", "Right")
         };
         private IAsset _firstAsset;
+        private string _labelWarningJSON;
 
         public string IndexerInputAssetName
         {
@@ -149,6 +150,7 @@ namespace AMSExplorer
 
         private void MediaAnalyticsVideoOCR_Load(object sender, EventArgs e)
         {
+            _labelWarningJSON = labelWarningJSON.Text;
             comboBoxLanguage.Items.AddRange(VideOCRLanguages.ToArray());
             comboBoxLanguage.SelectedIndex = 0;
             comboBoxOrientation.Items.AddRange(TextOrientations.ToArray());
@@ -288,7 +290,7 @@ namespace AMSExplorer
                 }
                 catch (Exception ex)
                 {
-                    labelWarningJSON.Text = string.Format((string)labelWarningJSON.Tag, ex.Message);
+                    labelWarningJSON.Text = string.Format(_labelWarningJSON, ex.Message);
                     Error = true;
                 }
             }

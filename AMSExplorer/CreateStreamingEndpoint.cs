@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -42,8 +43,17 @@ namespace AMSExplorer
 
         public int scaleUnits
         {
-            get { return Convert.ToInt32(numericUpDownRU.Value); }
-            set { numericUpDownRU.Value = value; }
+            get
+            {
+                if (radioButtonPremium.Checked)
+                {
+                    return (int)numericUpDownUnits.Value;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
         }
 
         public bool EnableAzureCDN
@@ -64,6 +74,8 @@ namespace AMSExplorer
         private void CreateStreamingEndpoint_Load(object sender, EventArgs e)
         {
             checkSEName();
+            moreinfoSE.Links.Add(new LinkLabel.Link(0, moreinfoSE.Text.Length, Constants.LinkMoreInfoSE));
+
         }
 
         private void buttonOk_Click(object sender, EventArgs e)
@@ -76,18 +88,6 @@ namespace AMSExplorer
 
         }
 
-        private void numericUpDownRU_ValueChanged(object sender, EventArgs e)
-        {
-            if (numericUpDownRU.Value==0)
-            {
-                checkBoxEnableAzureCDN.Enabled = false;
-                checkBoxEnableAzureCDN.Checked = false;
-            }
-            else
-            {
-                checkBoxEnableAzureCDN.Enabled = true;
-            }
-        }
 
         private void checkSEName()
         {
@@ -95,7 +95,7 @@ namespace AMSExplorer
 
             if (!IsSENameValid(tb.Text))
             {
-                errorProvider1.SetError(tb, "Streaming Endpoint name is not valid");
+                errorProvider1.SetError(tb, AMSExplorer.Properties.Resources.CreateStreamingEndpoint_checkSEName_StreamingEndpointNameIsNotValid);
             }
             else
             {
@@ -112,6 +112,17 @@ namespace AMSExplorer
         private void textboxSEName_TextChanged(object sender, EventArgs e)
         {
             checkSEName();
+        }
+
+        private void radioButtonPremium_CheckedChanged(object sender, EventArgs e)
+        {
+            numericUpDownUnits.Enabled = radioButtonPremium.Checked;
+        }
+
+        private void moreinfoame_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(e.Link.LinkData as string);
+
         }
     }
 }
