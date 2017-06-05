@@ -35,6 +35,8 @@ using Microsoft.WindowsAzure.MediaServices.Client.ContentKeyAuthorization;
 using Microsoft.WindowsAzure.MediaServices.Client.DynamicEncryption;
 using Microsoft.WindowsAzure.MediaServices.Client.Metadata;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace AMSExplorer
 {
@@ -688,7 +690,7 @@ namespace AMSExplorer
                     if (locator.Type == LocatorType.Sas)
                     {
                         TreeViewLocators.Nodes[indexloc].Nodes[0].Nodes.Add(new TreeNode(
-                     string.Format("Container Path: {0}", locator.Path)
+                     string.Format("Container Path: {0}", locator.Path.Replace("http://", "https://"))
                      ));
 
                         TreeViewLocators.Nodes[indexloc].Nodes.Add(new TreeNode(AssetInfo._prog_down_https_SAS));
@@ -717,7 +719,7 @@ namespace AMSExplorer
                 IAssetFile AF = SelectedAssetFiles.FirstOrDefault();
                 if (AF == null)
                     return;
-                
+
                 DGFiles.Rows.Clear();
                 DGFiles.Rows.Add(AMSExplorer.Properties.Resources.AssetInformation_AssetInformation_Load_Name, AF.Name);
                 DGFiles.Rows.Add("Id", AF.Id);
@@ -2343,9 +2345,8 @@ namespace AMSExplorer
                         File.Delete(filePath);
                     }
 
-                    StreamWriter outfile = new StreamWriter(filePath, false, Encoding.UTF8);
-                    outfile.Write(editform.TextData);
-                    outfile.Close();
+                    var doc = XDocument.Parse(editform.TextData);
+                    doc.Save(filePath);
 
                     progressBarUpload.Visible = true;
                     buttonClose.Enabled = false;

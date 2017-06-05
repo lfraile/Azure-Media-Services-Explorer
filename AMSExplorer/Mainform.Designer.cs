@@ -169,6 +169,7 @@
             this.toolStripSeparator41 = new System.Windows.Forms.ToolStripSeparator();
             this.copyIngestURLToClipboardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabPageJobs = new System.Windows.Forms.TabPage();
+            this.linkLabelMoreInfoMediaUnits = new System.Windows.Forms.LinkLabel();
             this.trackBarEncodingRU = new System.Windows.Forms.TrackBar();
             this.buttonUpdateEncodingRU = new System.Windows.Forms.Button();
             this.comboBoxSearchJobOption = new System.Windows.Forms.ComboBox();
@@ -532,6 +533,7 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.linkLabelFeedbackAMS = new System.Windows.Forms.LinkLabel();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.toolStripMenuItem51 = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).BeginInit();
             this.splitContainerMain.Panel1.SuspendLayout();
             this.splitContainerMain.Panel2.SuspendLayout();
@@ -1622,6 +1624,7 @@
             // tabPageJobs
             // 
             this.tabPageJobs.BackColor = System.Drawing.SystemColors.Window;
+            this.tabPageJobs.Controls.Add(this.linkLabelMoreInfoMediaUnits);
             this.tabPageJobs.Controls.Add(this.trackBarEncodingRU);
             this.tabPageJobs.Controls.Add(this.buttonUpdateEncodingRU);
             this.tabPageJobs.Controls.Add(this.comboBoxSearchJobOption);
@@ -1643,6 +1646,14 @@
             this.tabPageJobs.Controls.Add(this.dataGridViewJobsV);
             resources.ApplyResources(this.tabPageJobs, "tabPageJobs");
             this.tabPageJobs.Name = "tabPageJobs";
+            // 
+            // linkLabelMoreInfoMediaUnits
+            // 
+            resources.ApplyResources(this.linkLabelMoreInfoMediaUnits, "linkLabelMoreInfoMediaUnits");
+            this.linkLabelMoreInfoMediaUnits.Name = "linkLabelMoreInfoMediaUnits";
+            this.linkLabelMoreInfoMediaUnits.TabStop = true;
+            this.toolTip1.SetToolTip(this.linkLabelMoreInfoMediaUnits, resources.GetString("linkLabelMoreInfoMediaUnits.ToolTip"));
+            this.linkLabelMoreInfoMediaUnits.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMoreInfoMediaUnits_LinkClicked);
             // 
             // trackBarEncodingRU
             // 
@@ -4036,6 +4047,7 @@
             // 
             this.managementToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.azureManagementPortalToolStripMenuItem1,
+            this.toolStripMenuItem51,
             this.attachAnotherStoragheAccountToolStripMenuItem,
             this.configureTelemetryToolStripMenuItem});
             this.managementToolStripMenuItem.Name = "managementToolStripMenuItem";
@@ -4320,6 +4332,13 @@
             // 
             this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             resources.ApplyResources(this.notifyIcon1, "notifyIcon1");
+            // 
+            // toolStripMenuItem51
+            // 
+            this.toolStripMenuItem51.Image = global::AMSExplorer.Bitmaps.external_link;
+            this.toolStripMenuItem51.Name = "toolStripMenuItem51";
+            resources.ApplyResources(this.toolStripMenuItem51, "toolStripMenuItem51");
+            this.toolStripMenuItem51.Click += new System.EventHandler(this.toolStripMenuItemClassicPortal_Click);
             // 
             // Mainform
             // 
@@ -4891,6 +4910,8 @@
         private System.Windows.Forms.ToolStripMenuItem allJobsToolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem selectedJobsToolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem allJobsToolStripMenuItem3;
+        private System.Windows.Forms.LinkLabel linkLabelMoreInfoMediaUnits;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem51;
     }
 }
 

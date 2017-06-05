@@ -405,7 +405,6 @@ namespace AMSExplorer
                 string assetContainerName = uploadUri.Segments[1];
 
                 CloudBlobContainer mediaBlobContainer = cloudBlobClient.GetContainerReference(assetContainerName);
-
                 TextBoxLogWriteLine("Creating the blob container.");
 
                 mediaBlobContainer.CreateIfNotExists();
@@ -1165,14 +1164,24 @@ namespace AMSExplorer
             dataGridViewAssetsV.Invoke(new Action(() => dataGridViewAssetsV.AssetsPerPage = Properties.Settings.Default.NbItemsDisplayedInGrid));
             comboBoxPageAssets.Invoke(new Action(() => ComboBackupindex = comboBoxPageAssets.SelectedIndex));
             dataGridViewAssetsV.Invoke(new Action(() => dataGridViewAssetsV.RefreshAssets(_context, ComboBackupindex + 1)));
-            comboBoxPageAssets.Invoke(new Action(() => comboBoxPageAssets.Items.Clear()));
             dataGridViewAssetsV.Invoke(new Action(() => DGpagecount = dataGridViewAssetsV.PageCount));
 
-            for (int i = 0; i < DGpagecount; i++)
+            if (comboBoxPageAssets.Items.Count < DGpagecount) // more assets, let's add pages
             {
-                comboBoxPageAssets.Invoke(new Action(() => comboBoxPageAssets.Items.Add(i + 1)));
+                for (int i = comboBoxPageAssets.Items.Count; i < DGpagecount; i++)
+                {
+                    comboBoxPageAssets.Invoke(new Action(() => comboBoxPageAssets.Items.Add(i + 1)));
+                }
             }
-            if (dataGridViewAssetsV.CurrentPage <= comboBoxPageAssets.Items.Count)
+            else if (comboBoxPageAssets.Items.Count > DGpagecount) // less assets, let's remove pages
+            {
+                for (int i = comboBoxPageAssets.Items.Count; i > DGpagecount; i--)
+                {
+                    comboBoxPageAssets.Invoke(new Action(() => comboBoxPageAssets.Items.Remove(i)));
+                }
+            }
+
+            if ((dataGridViewAssetsV.CurrentPage <= comboBoxPageAssets.Items.Count) && (comboBoxPageAssets.Items.Count > 0)) // if multiple refresh at the same time, it may happen that comboBoxPageAssets.Items.Count =0 which creates an exception
             {
                 comboBoxPageAssets.Invoke(new Action(() => comboBoxPageAssets.SelectedIndex = dataGridViewAssetsV.CurrentPage - 1));
             }
@@ -1197,19 +1206,31 @@ namespace AMSExplorer
             Debug.WriteLine("DoRefreshGridJobVNotforsttime");
             int backupindex = 0;
             int pagecount = 0;
-            dataGridViewJobsV.Invoke(new Action(() => dataGridViewJobsV.JobssPerPage = Properties.Settings.Default.NbItemsDisplayedInGrid));
 
+            dataGridViewJobsV.Invoke(new Action(() => dataGridViewJobsV.JobssPerPage = Properties.Settings.Default.NbItemsDisplayedInGrid));
             comboBoxPageJobs.Invoke(new Action(() => backupindex = comboBoxPageJobs.SelectedIndex));
             dataGridViewJobsV.Invoke(new Action(() => dataGridViewJobsV.Refreshjobs(_context, backupindex + 1)));
-            comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.Items.Clear()));
             dataGridViewJobsV.Invoke(new Action(() => pagecount = dataGridViewJobsV.PageCount));
 
-            // add pages
-            for (int i = 0; i < pagecount; i++)
+            if (comboBoxPageJobs.Items.Count < pagecount) // more assets, let's add pages
             {
-                comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.Items.Add(i + 1)));
+                for (int i = comboBoxPageJobs.Items.Count; i < pagecount; i++)
+                {
+                    comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.Items.Add(i + 1)));
+                }
             }
-            comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.SelectedIndex = dataGridViewJobsV.CurrentPage - 1));
+            else if (comboBoxPageJobs.Items.Count > pagecount) // less assets, let's remove pages
+            {
+                for (int i = comboBoxPageJobs.Items.Count; i > pagecount; i--)
+                {
+                    comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.Items.Remove(i)));
+                }
+            }
+
+            if ((dataGridViewJobsV.CurrentPage <= comboBoxPageJobs.Items.Count) && (comboBoxPageJobs.Items.Count > 0)) // if multiple refresh at the same time, it may happen that comboBoxPageJobs.Items.Count =0 which creates an exception
+            {
+                comboBoxPageJobs.Invoke(new Action(() => comboBoxPageJobs.SelectedIndex = dataGridViewJobsV.CurrentPage - 1));
+            }
             //uodate tab nimber of jobs
             tabPageJobs.Invoke(new Action(() => tabPageJobs.Text = string.Format(AMSExplorer.Properties.Resources.TabJobs + " ({0}/{1})", dataGridViewJobsV.DisplayedCount, _context.Jobs.Count())));
         }
@@ -2557,7 +2578,7 @@ namespace AMSExplorer
                 if (locatorType == LocatorType.OnDemandOrigin)
                 {
                     sbuilderThisAsset.AppendLine("Locator Path (best streaming endpoint selected)");
-                    sbuilderThisAsset.AppendLine(AssetInfo.RW(locator.Path, SESelected));
+                    sbuilderThisAsset.AppendLine(AssetInfo.RW(locator.Path, SESelected, https: true));
                     sbuilderThisAsset.AppendLine("");
 
                     // delivery policies
@@ -2595,14 +2616,14 @@ namespace AMSExplorer
 
 
                     // Get the MPEG-DASH URL of the asset for adaptive streaming.
-                    Uri mpegDashUri = AssetInfo.RW(locator.GetMpegDashUri(), SESelected);
+                    Uri mpegDashUri = AssetInfo.RW(locator.GetMpegDashUri(), SESelected, https: true);
 
                     // Get the HLS URL of the asset for adaptive streaming.
-                    Uri HLSUri = AssetInfo.RW(locator.GetHlsUri(), SESelected);
-                    Uri HLSUriv3 = AssetInfo.RW(locator.GetHlsv3Uri(), SESelected);
+                    Uri HLSUri = AssetInfo.RW(locator.GetHlsUri(), SESelected, https: true);
+                    Uri HLSUriv3 = AssetInfo.RW(locator.GetHlsv3Uri(), SESelected, https: true);
 
                     // Get the Smooth URL of the asset for adaptive streaming.
-                    Uri SmoothUri = AssetInfo.RW(locator.GetSmoothStreamingUri(), SESelected);
+                    Uri SmoothUri = AssetInfo.RW(locator.GetSmoothStreamingUri(), SESelected, https: true);
 
                     if (
                             (AssetToP.Options == AssetCreationOptions.None && AssetToP.DeliveryPolicies.Count == 0)
@@ -2613,7 +2634,7 @@ namespace AMSExplorer
                         sbuilderThisAsset.AppendLine(AssetInfo._prog_down_http_streaming + " : ");
                         foreach (IAssetFile IAF in AssetToP.AssetFiles)
                         {
-                            sbuilderThisAsset.AppendLine(AddBracket((new Uri(AssetInfo.RW(locator.Path, SESelected) + IAF.Name)).AbsoluteUri));
+                            sbuilderThisAsset.AppendLine(AddBracket((new Uri(AssetInfo.RW(locator.Path, SESelected, https: true) + IAF.Name)).AbsoluteUri));
                         }
                     }
 
@@ -2652,7 +2673,7 @@ namespace AMSExplorer
                                 sbuilderThisAsset.AppendLine(AssetInfo._hls_v4 + " : ");
                                 sbuilderThisAsset.AppendLine(AddBracket(HLSUri.AbsoluteUri));
                                 sbuilderThisAsset.AppendLine(AssetInfo._hls_v3 + " : ");
-                                sbuilderThisAsset.AppendLine(AddBracket(AssetInfo.RW(locator.GetHlsv3Uri(), SESelected).AbsoluteUri));
+                                sbuilderThisAsset.AppendLine(AddBracket(AssetInfo.RW(locator.GetHlsv3Uri(), SESelected, https: true).AbsoluteUri));
                             }
                         }
                     }
@@ -2660,7 +2681,7 @@ namespace AMSExplorer
                 else //SAS
                 {
                     sbuilderThisAsset.AppendLine("SAS Container Path :");
-                    sbuilderThisAsset.AppendLine(locator.Path);
+                    sbuilderThisAsset.AppendLine(locator.Path.Replace("http://", "https://"));
                     sbuilderThisAsset.AppendLine("");
 
                     IEnumerable<IAssetFile> AssetFiles = AssetToP.AssetFiles.ToList();
@@ -2673,7 +2694,7 @@ namespace AMSExplorer
                     TextBoxLogWriteLine("You can progressively download the following files :");
                     ProgressiveDownloadUris.ForEach(uri =>
                     {
-                        sbuilderThisAsset.AppendLine(AddBracket(uri.AbsoluteUri));
+                        sbuilderThisAsset.AppendLine(AddBracket(uri.AbsoluteUri.Replace("http://", "https://")));
                     }
                                         );
                 }
@@ -4557,14 +4578,14 @@ namespace AMSExplorer
                     TextBoxLogWriteLine("Listing the jobs...");
                     List<Task> cancelTasks = new List<Task>();
 
-                    var ongoingJobs = _context.Jobs.Where(j => j.State == JobState.Processing || j.State == JobState.Queued || j.State == JobState.Scheduled);
+                    var ongoingJobs = _context.Jobs;//.Where(j => j.State == JobState.Processing || j.State == JobState.Queued || j.State == JobState.Scheduled);
 
                     while (true)
                     {
                         // Enumerate through all jobs (1000 at a time)
                         var listjobs = ongoingJobs.Skip(skipSize).Take(batchSize).ToList();
                         currentSkipSize += listjobs.Count;
-                        cancelTasks.AddRange(listjobs.Select(a => a.CancelAsync()).ToArray());
+                        cancelTasks.AddRange(listjobs.Where(j => j.State == JobState.Processing || j.State == JobState.Queued || j.State == JobState.Scheduled).Select(a => a.CancelAsync()).ToArray());
 
                         if (currentSkipSize == batchSize)
                         {
@@ -4731,6 +4752,14 @@ namespace AMSExplorer
             CheckQuicktimeAndDisplayMessage(SelectedAssets);
 
             Encoders = GetMediaProcessorsByName(Constants.AzureMediaEncoder);
+
+            if (Encoders.Count == 0)
+            {
+                var message = string.Format("Processor '{0}' not found in the account.", Constants.AzureMediaEncoder);
+                MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                TextBoxLogWriteLine(message, true);
+                return;
+            }
 
             EncodingAMEPreset form = new EncodingAMEPreset(_context)
             {
@@ -4968,6 +4997,14 @@ namespace AMSExplorer
             IMediaProcessor processor = _context.MediaProcessors.GetLatestMediaProcessorByName(
                    MediaProcessorNames.WindowsAzureMediaPackager);
 
+            if (processor == null)
+            {
+                var message = string.Format("Processor '{0}' not found in the account.", MediaProcessorNames.WindowsAzureMediaPackager);
+                MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                TextBoxLogWriteLine(message, true);
+                return;
+            }
+
             HLSAESStatic form = new HLSAESStatic()
             {
                 HLSEncrypt = false,
@@ -5034,6 +5071,14 @@ namespace AMSExplorer
                     // Get the SDK extension method to  get a reference to the Windows Azure Media Packager.
                     IMediaProcessor processor = _context.MediaProcessors.GetLatestMediaProcessorByName(
                         MediaProcessorNames.WindowsAzureMediaPackager);
+
+                    if (processor == null)
+                    {
+                        var message = string.Format("Processor '{0}' not found in the account.", MediaProcessorNames.WindowsAzureMediaPackager);
+                        MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        TextBoxLogWriteLine(message, true);
+                        return;
+                    }
 
                     // Windows Azure Media Packager does not accept string presets, so load xml configuration
                     string smoothConfig = File.ReadAllText(Path.Combine(
@@ -5113,7 +5158,7 @@ namespace AMSExplorer
             {
                 CheckAssetSizeRegardingMediaUnit(SelectedAssets);
 
-                CheckPrimaryFileExtensionRedactionMode(SelectedAssets, new[] { ".MOV", ".WMV", ".MP4" });
+                // CheckPrimaryFileExtensionRedactionMode(SelectedAssets, new[] { ".MOV", ".WMV", ".MP4" });
 
                 // Get the SDK extension method to  get a reference to the processor.
                 IMediaProcessor processor = GetLatestMediaProcessorByName(processorStr);
@@ -5255,7 +5300,7 @@ namespace AMSExplorer
             {
                 CheckAssetSizeRegardingMediaUnit(SelectedAssets);
 
-                CheckPrimaryFileExtensionRedactionMode(SelectedAssets, new[] { ".MOV", ".WMV", ".MP4" });
+                // CheckPrimaryFileExtensionRedactionMode(SelectedAssets, new[] { ".MOV", ".WMV", ".MP4" });
 
                 // Get the SDK extension method to  get a reference to the processor.
                 IMediaProcessor processor = GetLatestMediaProcessorByName(processorStr);
@@ -5314,6 +5359,14 @@ namespace AMSExplorer
             // Get the SDK extension method to  get a reference to the Windows Azure Media Encryptor.
             IMediaProcessor processor = _context.MediaProcessors.GetLatestMediaProcessorByName(
                 MediaProcessorNames.WindowsAzureMediaEncryptor);
+
+            if (processor == null)
+            {
+                var message = string.Format("Processor '{0}' not found in the account.", MediaProcessorNames.WindowsAzureMediaEncryptor);
+                MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                TextBoxLogWriteLine(message, true);
+                return;
+            }
 
             PlayReadyStaticEnc form = new PlayReadyStaticEnc(_context)
             {
@@ -5533,6 +5586,14 @@ namespace AMSExplorer
                 // Get the SDK extension method to  get a reference to the Windows Azure Media Packager.
                 IMediaProcessor processor = _context.MediaProcessors.GetLatestMediaProcessorByName(
                     MediaProcessorNames.WindowsAzureMediaPackager);
+
+                if (processor == null)
+                {
+                    var message = string.Format("Processor '{0}' not found in the account.", MediaProcessorNames.WindowsAzureMediaPackager);
+                    MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    TextBoxLogWriteLine(message, true);
+                    return;
+                }
 
                 LaunchJobs_OneJobPerInputAsset_OneTaskPerfConfig(processor,
                     SelectedAssets,
@@ -6108,6 +6169,7 @@ namespace AMSExplorer
             Hide();
 
             linkLabelFeedbackAMS.Links.Add(new LinkLabel.Link(0, linkLabelFeedbackAMS.Text.Length, Constants.LinkFeedbackAMS));
+            linkLabelMoreInfoMediaUnits.Links.Add(new LinkLabel.Link(0, linkLabelMoreInfoMediaUnits.Text.Length, Constants.LinkInfoMediaUnit));
 
             comboBoxOrderAssets.Enabled = comboBoxStateAssets.Enabled = !largeAccount;
             //comboBoxOrderJobs.Enabled = _context.Jobs.Count() < triggerForLargeAccountNbJobs;
@@ -6389,6 +6451,14 @@ namespace AMSExplorer
 
             string taskname = "Azure Media Encoding (adv) of " + Constants.NameconvInputasset + " with " + Constants.NameconvEncodername;
             Encoders = GetMediaProcessorsByName(Constants.AzureMediaEncoder);
+
+            if (Encoders.Count == 0)
+            {
+                var message = string.Format("Processor '{0}' not found in the account.", Constants.AzureMediaEncoder);
+                MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                TextBoxLogWriteLine(message, true);
+                return;
+            }
 
             EncodingAMEAdv form = new EncodingAMEAdv(_context)
             {
@@ -10255,7 +10325,16 @@ namespace AMSExplorer
                 {
                     if (channel.Preview.Endpoints.FirstOrDefault().Url.AbsoluteUri != null)
                     {
-                        AssetInfo.DoPlayBackWithStreamingEndpoint(typeplayer: ptype, Urlstr: channel.Preview.Endpoints.FirstOrDefault().Url.AbsoluteUri, DoNotRewriteURL: true, context: _context, formatamp: AzureMediaPlayerFormats.Smooth, UISelectSEFiltersAndProtocols: false, mainForm: this);
+                        AssetInfo.DoPlayBackWithStreamingEndpoint(
+                            typeplayer: ptype,
+                            Urlstr: channel.Preview.Endpoints.FirstOrDefault().Url.AbsoluteUri,
+                            DoNotRewriteURL: true, context: _context,
+                            formatamp: AzureMediaPlayerFormats.Smooth,
+                            UISelectSEFiltersAndProtocols: false,
+                            mainForm: this,
+                            selectedBrowser: Constants.BrowserIE[1],
+                            launchbrowser: true
+                            );
                     }
                 }
             }
@@ -12334,8 +12413,6 @@ namespace AMSExplorer
 
         private void azureManagementPortalToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            //  string PortalUrl = (_credentials.UseOtherAPI == true.ToString() && _credentials.OtherAzureEndpoint.Equals(CredentialsEntry.OtherChinaAzureEndpoint)) ?
-            //     CredentialsEntry.ChinaManagementPortal : CredentialsEntry.GlobalManagementPortal;
             string PortalUrl;
             if (_credentials.UseOtherAPI)
             {
@@ -12343,7 +12420,7 @@ namespace AMSExplorer
             }
             else
             {
-                PortalUrl = CredentialsEntry.GlobalManagementPortal;
+                PortalUrl = CredentialsEntry.GlobalPortal;
             }
 
             if (!string.IsNullOrEmpty(PortalUrl)) Process.Start(PortalUrl);
@@ -12760,12 +12837,12 @@ namespace AMSExplorer
 
         private void withAzureMediaPlayerToolStripMenuItem3_Click(object sender, EventArgs e)
         {
-            DoPlaybackChannelPreview(PlayerType.AzureMediaPlayer);
+            DoPlaybackChannelPreview(PlayerType.AzureMediaPlayerClear);
         }
 
         private void withAzureMediaPlayerToolStripMenuItem4_Click(object sender, EventArgs e)
         {
-            DoPlaybackChannelPreview(PlayerType.AzureMediaPlayer);
+            DoPlaybackChannelPreview(PlayerType.AzureMediaPlayerClear);
         }
 
         private void hTML5CaptionMakerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -15500,7 +15577,6 @@ namespace AMSExplorer
                     jsonwithid,
                    Properties.Settings.Default.useProtectedConfiguration ? TaskOptions.ProtectedConfiguration : TaskOptions.None
                   );
-
                 AnalyzeTask.InputAssets.Add(asset);
 
                 // Add an output asset to contain the results of the job.  
@@ -15703,6 +15779,27 @@ namespace AMSExplorer
         private void allJobsToolStripMenuItem3_Click(object sender, EventArgs e)
         {
             DoCancelAllJobs();
+        }
+
+        private void linkLabelMoreInfoMediaUnits_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(e.Link.LinkData as string);
+        }
+
+        private void toolStripMenuItemClassicPortal_Click(object sender, EventArgs e)
+        {
+            string PortalUrl;
+            if (_credentials.UseOtherAPI)
+            {
+                PortalUrl = _credentials.OtherManagementPortal;
+            }
+            else
+            {
+                PortalUrl = CredentialsEntry.GlobalClassicManagementPortal;
+            }
+
+            if (!string.IsNullOrEmpty(PortalUrl)) Process.Start(PortalUrl);
+
         }
     }
 }
@@ -17820,27 +17917,34 @@ namespace AMSExplorer
 
                // let's cancel monitor task of non visible jobs
                List<string> listToCancel = new List<string>();
-               foreach (var jobmonitored in _MyListJobsMonitored)
+               try
                {
-                   if (ActiveAndVisibleJobs.Where(j => j.Id == jobmonitored.Key).FirstOrDefault() == null)
+                   foreach (var jobmonitored in _MyListJobsMonitored)
                    {
-                       jobmonitored.Value.Cancel();
-                       listToCancel.Add(jobmonitored.Key);
+                       if (ActiveAndVisibleJobs.Where(j => j.Id == jobmonitored.Key).FirstOrDefault() == null)
+                       {
+                           jobmonitored.Value.Cancel();
+                           listToCancel.Add(jobmonitored.Key);
+                       }
+                   }
+                   listToCancel.ForEach(j => _MyListJobsMonitored.Remove(j));
+
+                   // let's adjust the JobRefreshIntervalInMilliseconds based on the number of jobs to monitor
+                   // 2500 ms if 5 jobs or less, 500ms*nbjobs otherwise
+                   JobRefreshIntervalInMilliseconds = Math.Max(DefaultJobRefreshIntervalInMilliseconds, Convert.ToInt32(DefaultJobRefreshIntervalInMilliseconds * ActiveAndVisibleJobs.Count() / 5d));
+
+                   // let's monitor job that are not yet monitored
+                   foreach (IJob job in ActiveAndVisibleJobs.ToList())
+                   {
+                       if (!_MyListJobsMonitored.ContainsKey(job.Id))
+                       {
+                           this.DoJobProgress(job); // token will be added to dictionnary in this function
+                       }
                    }
                }
-               listToCancel.ForEach(j => _MyListJobsMonitored.Remove(j));
-
-               // let's adjust the JobRefreshIntervalInMilliseconds based on the number of jobs to monitor
-               // 2500 ms if 5 jobs or less, 500ms*nbjobs otherwise
-               JobRefreshIntervalInMilliseconds = Math.Max(DefaultJobRefreshIntervalInMilliseconds, Convert.ToInt32(DefaultJobRefreshIntervalInMilliseconds * ActiveAndVisibleJobs.Count() / 5d));
-
-               // let's monitor job that are not yet monitored
-               foreach (IJob job in ActiveAndVisibleJobs.ToList())
+               catch
                {
-                   if (!_MyListJobsMonitored.ContainsKey(job.Id))
-                   {
-                       this.DoJobProgress(job); // token will be added to dictionnary in this function
-                   }
+
                }
            });
         }
