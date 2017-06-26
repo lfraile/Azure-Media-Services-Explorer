@@ -97,6 +97,7 @@ namespace AMSExplorer
         private static readonly int S1AssetSizeLimit = 325; // GBytes
         private static readonly int S2AssetSizeLimit = 640; // GBytes
         private static readonly int S3AssetSizeLimit = 240; // GBytes
+        public string _accountname;
 
         public Mainform()
         {
@@ -168,10 +169,14 @@ namespace AMSExplorer
 
             _credentials = form.LoginCredentials;
 
+            // Get the service context.
+            _context = form.context;// Program.ConnectAndGetNewContext(_credentials, true);
+            _accountname = form.accountName;
+
             DisplaySplashDuringLoading = true;
             ThreadPool.QueueUserWorkItem((x) =>
             {
-                using (var splashForm = new Splash(_credentials.AccountName))
+                using (var splashForm = new Splash(_accountname))
                 {
                     splashForm.Show();
                     while (DisplaySplashDuringLoading)
@@ -180,17 +185,21 @@ namespace AMSExplorer
                 }
             });
 
-            // Get the service context.
-            _context = Program.ConnectAndGetNewContext(_credentials, true);
 
             // mainform title
-            toolStripStatusLabelConnection.Text = String.Format("Version {0}", Assembly.GetExecutingAssembly().GetName().Version) + " - Connected to " + _context.Credentials.ClientId;
+            //  toolStripStatusLabelConnection.Text = String.Format("Version {0}", Assembly.GetExecutingAssembly().GetName().Version) + " - Connected to " + _context.Credentials.ClientId;
+
+            toolStripStatusLabelConnection.Text = String.Format("Version {0}", Assembly.GetExecutingAssembly().GetName().Version) + " - Connected to " + form.accountName;
 
             // notification title
-            notifyIcon1.Text = string.Format(notifyIcon1.Text, _context.Credentials.ClientId);
+            //notifyIcon1.Text = string.Format(notifyIcon1.Text, _context.Credentials.ClientId);
+            notifyIcon1.Text = string.Format(notifyIcon1.Text, _accountname);
+
 
             // name of the ams acount in the title of the form - useful when several instances to navigate with icons
-            this.Text = string.Format(this.Text, _context.Credentials.ClientId);
+            // this.Text = string.Format(this.Text, _context.Credentials.ClientId);
+            this.Text = string.Format(this.Text, form.accountName);
+
 
             // Let's check storage credentials
             if (string.IsNullOrEmpty(_credentials.DefaultStorageKey))
@@ -347,11 +356,14 @@ namespace AMSExplorer
             }
 
             // let's initialize the trackbar and text for nb of transfers
+
+            // hard coded - for tests
+            Properties.Settings.Default.ConcurrentTransfers = 1;
+
             trackBarConcurrentTransfers.Value = Properties.Settings.Default.ConcurrentTransfers;
             UpdateLabelConcurrentTransfers();
 
             ApplySettingsOptions(true);
-
         }
 
 
@@ -1634,7 +1646,7 @@ namespace AMSExplorer
                         if (watchfoldersettings.SendEmailToRecipient != null)
                         {
                             StringBuilder sb = new StringBuilder();
-                            sb.Append((new JobInfo(job).GetStats()));
+                            sb.Append((new JobInfo(job, _accountname).GetStats()));
 
                             if (!Program.CreateAndSendOutlookMail(watchfoldersettings.SendEmailToRecipient, "Explorer Watchfolder: job " + job.State.ToString() + " for asset " + asset.Name, sb.ToString()))
                             {
@@ -2912,9 +2924,9 @@ namespace AMSExplorer
             if (System.Windows.Forms.MessageBox.Show("Are you sure that you want to delete ALL the assets ?", "Asset deletion", System.Windows.Forms.MessageBoxButtons.YesNo, MessageBoxIcon.Question) == System.Windows.Forms.DialogResult.Yes)
             {
                 string valuekey = "";
-                if (Program.InputBox("Please confirm", string.Format("To confirm the operation, please type the name of the media service account ({0})", _context.Credentials.ClientId), ref valuekey, false) == DialogResult.OK)
+                if (Program.InputBox("Please confirm", string.Format("To confirm the operation, please type the name of the media service account ({0})", _accountname), ref valuekey, false) == DialogResult.OK)
                 {
-                    if (valuekey != _context.Credentials.ClientId)
+                    if (valuekey != _accountname)
                     {
                         MessageBox.Show("Strings do not match. Operation is aborted", "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                         return;
@@ -3616,7 +3628,7 @@ namespace AMSExplorer
             }
         }
 
-        private async void ProcessExportAssetToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, Dictionary<string, string> storagekeys, List<IAsset> SourceAssets, string TargetAssetName, TransferEntryResponse response, bool DeleteSourceAssets = false, bool CopyDynEnc = false, bool ReWriteLAURL = false, bool CloneAssetFilters = false, bool CloneStreamingLocators = false, bool UnpublishSourceAsset = false)
+        private async void ProcessExportAssetToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, Dictionary<string, string> storagekeys, List<IAsset> SourceAssets, string TargetAssetName, TransferEntryResponse response, CloudMediaContext DestinationContext, bool DeleteSourceAssets = false, bool CopyDynEnc = false, bool ReWriteLAURL = false, bool CloneAssetFilters = false, bool CloneStreamingLocators = false, bool UnpublishSourceAsset = false)
 
         {
 
@@ -3629,7 +3641,7 @@ namespace AMSExplorer
             }
 
             bool ErrorCopyAsset = false;
-            CloudMediaContext DestinationContext;
+            //CloudMediaContext DestinationContext;
             IAsset TargetAsset;
             CloudStorageAccount DestinationCloudStorageAccount;
             CloudBlobClient DestinationCloudBlobClient;
@@ -3637,6 +3649,7 @@ namespace AMSExplorer
             ILocator DestinationLocator;
             IAssetFile[] ismAssetFile;
 
+            /*
             try
             {
                 DestinationContext = Program.ConnectAndGetNewContext(DestinationCredentialsEntry);
@@ -3648,6 +3661,7 @@ namespace AMSExplorer
                 DoGridTransferDeclareError(response.Id, ex);
                 return;
             }
+            */
 
             try
             {
@@ -3884,7 +3898,7 @@ namespace AMSExplorer
                         List<CloudBlobDirectory> ListDirectories = new List<CloudBlobDirectory>();
                         // do the copy
                         nbblob = 0;
-                        DoGridTransferUpdateProgressText(string.Format("fragblobs", SourceAsset.Name, DestinationCredentialsEntry.AccountName), 0, response.Id);
+                        DoGridTransferUpdateProgressText(string.Format("fragblobs", SourceAsset.Name, AMSLogin.ReturnAccountName(DestinationCredentialsEntry)), 0, response.Id);
                         try
                         {
                             var mediablobs = SourceCloudBlobContainer.ListBlobs();
@@ -3971,7 +3985,7 @@ namespace AMSExplorer
                 TextBoxLogWriteLine("Dynamic encryption settings copy...");
                 try
                 {
-                    await DynamicEncryption.CopyDynamicEncryption(SourceAssets.FirstOrDefault(), TargetAsset, ReWriteLAURL);
+                    await DynamicEncryption.CopyDynamicEncryption(SourceAssets.FirstOrDefault(), TargetAsset, ReWriteLAURL, _accountname, AMSLogin.ReturnAccountName(DestinationCredentialsEntry));
                     TextBoxLogWriteLine("Dynamic encryption settings copied.");
 
                 }
@@ -4041,7 +4055,7 @@ namespace AMSExplorer
             if (!ErrorCopyAsset && !response.token.IsCancellationRequested)
             {
                 if (DeleteSourceAssets) SourceAssets.ForEach(a => a.Delete());
-                TextBoxLogWriteLine("Asset copy completed. The new asset in '{0}' has the Id :", DestinationCredentialsEntry.AccountName);
+                TextBoxLogWriteLine("Asset copy completed. The new asset in '{0}' has the Id :", AMSLogin.ReturnAccountName(DestinationCredentialsEntry));
                 TextBoxLogWriteLine(TargetAsset.Id);
                 DoGridTransferDeclareCompleted(response.Id, DestinationCloudBlobContainer.Uri.AbsoluteUri);
             }
@@ -4325,6 +4339,20 @@ namespace AMSExplorer
         private async void ProcessCloneProgramToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, IProgram sourceProgram, bool CopyDynEnc, bool RewriteLAURL, bool CloneLocators, bool CloneAssetFilters)
         {
             TextBoxLogWriteLine("Starting the program cloning process.");
+
+            if (DestinationCredentialsEntry.UseAADServicePrincipal)  // service principal mode
+            {
+                var spcrendentialsform = new AMSLoginServicePrincipal();
+                if (spcrendentialsform.ShowDialog() == DialogResult.OK)
+                {
+                    DestinationCredentialsEntry.ADSPClientId = spcrendentialsform.ClientId;
+                    DestinationCredentialsEntry.ADSPClientSecret = spcrendentialsform.ClientSecret;
+                }
+                else
+                {
+                    return;
+                }
+            }
             CloudMediaContext DestinationContext = Program.ConnectAndGetNewContext(DestinationCredentialsEntry);
 
             // let's check that target channel exists
@@ -4351,7 +4379,7 @@ namespace AMSExplorer
                 TextBoxLogWriteLine("Dynamic encryption settings copy...");
                 try
                 {
-                    await DynamicEncryption.CopyDynamicEncryption(sourceProgram.Asset, clonedAsset, RewriteLAURL);
+                    await DynamicEncryption.CopyDynamicEncryption(sourceProgram.Asset, clonedAsset, RewriteLAURL, _accountname, AMSLogin.ReturnAccountName(DestinationCredentialsEntry));
                     TextBoxLogWriteLine("Dynamic encryption settings copied.");
                 }
                 catch (Exception ex)
@@ -4428,6 +4456,20 @@ namespace AMSExplorer
         private async void ProcessCloneChannelToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, IChannel sourceChannel)
         {
             TextBoxLogWriteLine("Starting the channel cloning process...");
+
+            if (DestinationCredentialsEntry.UseAADServicePrincipal)  // service principal mode
+            {
+                var spcrendentialsform = new AMSLoginServicePrincipal();
+                if (spcrendentialsform.ShowDialog() == DialogResult.OK)
+                {
+                    DestinationCredentialsEntry.ADSPClientId = spcrendentialsform.ClientId;
+                    DestinationCredentialsEntry.ADSPClientSecret = spcrendentialsform.ClientSecret;
+                }
+                else
+                {
+                    return;
+                }
+            }
             CloudMediaContext DestinationContext = Program.ConnectAndGetNewContext(DestinationCredentialsEntry);
 
             var options = new ChannelCreationOptions()
@@ -7101,13 +7143,13 @@ namespace AMSExplorer
 
         private void DoCreateJobReportEmail()
         {
-            JobInfo JR = new JobInfo(ReturnSelectedJobs());
+            JobInfo JR = new JobInfo(ReturnSelectedJobs(), _accountname);
             JR.CreateOutlookMail();
         }
 
         private void DoDisplayJobReport()
         {
-            JobInfo JR = new JobInfo(ReturnSelectedJobs());
+            JobInfo JR = new JobInfo(ReturnSelectedJobs(), _accountname);
             StringBuilder SB = JR.GetStats();
             var tokenDisplayForm = new EditorXMLJSON("Job report", SB.ToString(), false, false, false);
             tokenDisplayForm.Display();
@@ -8161,6 +8203,9 @@ namespace AMSExplorer
             withCustomPlayerToolStripMenuItem.Visible = Properties.Settings.Default.CustomPlayerEnabled;
             withCustomPlayerToolStripMenuItem1.Visible = Properties.Settings.Default.CustomPlayerEnabled;
             withCustomPlayerToolStripMenuItem2.Visible = Properties.Settings.Default.CustomPlayerEnabled;
+
+            _context.NumberOfConcurrentTransfers = Properties.Settings.Default.NumberOfConcurrentTransfers;
+            _context.ParallelTransferThreadCount = Properties.Settings.Default.ParallelTransferThreadCount;
         }
 
 
@@ -9923,7 +9968,6 @@ namespace AMSExplorer
             // Refresh the context
             _context = Program.ConnectAndGetNewContext(_credentials);
             bool multiselection = streamingendpoints.Count > 1;
-
 
             StreamingEndpointInformation form = new StreamingEndpointInformation()
             {
@@ -11765,8 +11809,8 @@ namespace AMSExplorer
                 {
                     labelAssetName = string.Format("Locators, dynamic encryption policies and key authorization policies will removed for these {0} selected assets.", SelectedAssets.Count.ToString());
                 }
-                labelAssetName += Constants.endline + "Do you want to also DELETE the policies ?";
-                DialogResult myDialogResult = MessageBox.Show(labelAssetName, "Dynamic encryption", MessageBoxButtons.YesNoCancel);
+                labelAssetName += Constants.endline + Constants.endline + "Do you want to also DELETE the policies ? Be careful, this can impact other assets if the policies are shared !";
+                DialogResult myDialogResult = MessageBox.Show(labelAssetName, "Dynamic encryption", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
 
                 if (myDialogResult != DialogResult.Cancel)
                 {
@@ -11794,6 +11838,7 @@ namespace AMSExplorer
                                 {
                                     AssetToProcess.DeliveryPolicies.Remove(item);
                                 }
+
 
                                 //Removing all authorization policies associated with asset keys
                                 AutPolListIDs = AssetToProcess.ContentKeys.Select(k => k.AuthorizationPolicyId).ToList();
@@ -12336,7 +12381,7 @@ namespace AMSExplorer
                 // Initialize the AccountInfo class.
                 MediaServicesAccount accountInfo = new MediaServicesAccount()
                 {
-                    AccountName = _context.Credentials.ClientId,
+                    AccountName = _accountname,
                     StorageAccountName = _context.DefaultStorageAccount.Name
                 };
 
@@ -12352,7 +12397,7 @@ namespace AMSExplorer
                 try
                 {
                     helper.AttachStorageAccountToMediaServiceAccount(accountInfo, storageAccountToAttach);
-                    TextBoxLogWriteLine("Storage account '{0}' attached to '{1}' account.", form.GetStorageName, _context.Credentials.ClientId);
+                    TextBoxLogWriteLine("Storage account '{0}' attached to '{1}' account.", form.GetStorageName, _accountname);
                 }
                 catch (Exception ex)
                 {
@@ -12950,26 +12995,59 @@ namespace AMSExplorer
                     , "Fragmented asset", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
-            CopyAsset form = new CopyAsset(_context, SelectedAssets.Count, CopyAssetBoxMode.CopyAsset)
+            CopyAsset form = new CopyAsset(_context, SelectedAssets.Count, CopyAssetBoxMode.CopyAsset, _accountname)
             {
                 CopyAssetName = string.Format("Copy of {0}", Constants.NameconvAsset),
                 EnableSingleDestinationAsset = SelectedAssets.Count > 1
             };
 
+
             if (form.ShowDialog() == DialogResult.OK)
             {
+                var newdestinationcredentials = form.DestinationLoginCredentials;
+                if (newdestinationcredentials.UseAADServicePrincipal)
+                {
+                    {
+                        var spcrendentialsform = new AMSLoginServicePrincipal();
+                        if (spcrendentialsform.ShowDialog() == DialogResult.OK)
+                        {
+                            newdestinationcredentials.ADSPClientId = spcrendentialsform.ClientId;
+                            newdestinationcredentials.ADSPClientSecret = spcrendentialsform.ClientSecret;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+
+
                 bool usercanceled = false;
-                var storagekeys = BuildStorageKeyDictionary(SelectedAssets, form.DestinationLoginCredentials, ref usercanceled, _context.DefaultStorageAccount.Name, _credentials.DefaultStorageKey, form.DestinationStorageAccount);
+                var storagekeys = BuildStorageKeyDictionary(SelectedAssets, newdestinationcredentials, ref usercanceled, _context.DefaultStorageAccount.Name, _credentials.DefaultStorageKey, form.DestinationStorageAccount);
                 if (!usercanceled)
                 {
+                    CloudMediaContext DestinationContext;
+                    try
+                    {
+                        DestinationContext = Program.ConnectAndGetNewContext(newdestinationcredentials);
+                    }
+                    catch (Exception ex)
+                    {
+                        TextBoxLogWriteLine("Error", true);
+                        TextBoxLogWriteLine(ex);
+                        return;
+                    }
+
+
+
                     if (!form.SingleDestinationAsset) // standard mode: 1:1 asset copy
                     {
                         foreach (IAsset asset in SelectedAssets)
                         {
-                            var response = DoGridTransferAddItem(string.Format("Copy asset '{0}' to account '{1}'", asset.Name, form.DestinationLoginCredentials.AccountName), TransferType.ExportToOtherAMSAccount, false);
+                            var response = DoGridTransferAddItem(string.Format("Copy asset '{0}' to account '{1}'", asset.Name, AMSLogin.ReturnAccountName(form.DestinationLoginCredentials)), TransferType.ExportToOtherAMSAccount, false);
                             // Start a worker thread that does asset copy.
                             Task.Factory.StartNew(() =>
-                            ProcessExportAssetToAnotherAMSAccount(form.DestinationLoginCredentials, form.DestinationStorageAccount, storagekeys, new List<IAsset>() { asset }, form.CopyAssetName.Replace(Constants.NameconvAsset, asset.Name), response, form.DeleteSourceAsset, form.CopyDynEnc, form.RewriteLAURL, form.CloneAssetFilters, form.CloneLocators, form.UnpublishSourceAsset), response.token);
+                            ProcessExportAssetToAnotherAMSAccount(newdestinationcredentials, form.DestinationStorageAccount, storagekeys, new List<IAsset>() { asset }, form.CopyAssetName.Replace(Constants.NameconvAsset, asset.Name), response, DestinationContext, form.DeleteSourceAsset, form.CopyDynEnc, form.RewriteLAURL, form.CloneAssetFilters, form.CloneLocators, form.UnpublishSourceAsset), response.token);
                         }
                     }
                     else // merge all assets into a single asset
@@ -12980,10 +13058,10 @@ namespace AMSExplorer
                         }
                         else
                         {
-                            var response = DoGridTransferAddItem(string.Format("Copy several assets to account '{0}'", form.DestinationLoginCredentials.AccountName), TransferType.ExportToOtherAMSAccount, false);
+                            var response = DoGridTransferAddItem(string.Format("Copy several assets to account '{0}'", AMSLogin.ReturnAccountName(form.DestinationLoginCredentials)), TransferType.ExportToOtherAMSAccount, false);
                             // Start a worker thread that does asset copy.
                             Task.Factory.StartNew(() =>
-                            ProcessExportAssetToAnotherAMSAccount(form.DestinationLoginCredentials, form.DestinationStorageAccount, storagekeys, SelectedAssets, form.CopyAssetName.Replace(Constants.NameconvAsset, SelectedAssets.FirstOrDefault().Name), response, form.DeleteSourceAsset), response.token);
+                            ProcessExportAssetToAnotherAMSAccount(newdestinationcredentials, form.DestinationStorageAccount, storagekeys, SelectedAssets, form.CopyAssetName.Replace(Constants.NameconvAsset, SelectedAssets.FirstOrDefault().Name), response, DestinationContext, form.DeleteSourceAsset), response.token);
                         }
                     }
                     DotabControlMainSwitch(AMSExplorer.Properties.Resources.TabTransfers);
@@ -14079,7 +14157,7 @@ namespace AMSExplorer
         {
             var SelectedPrograms = ReturnSelectedPrograms();
 
-            CopyAsset form = new CopyAsset(_context, 1, CopyAssetBoxMode.CloneProgram);
+            CopyAsset form = new CopyAsset(_context, 1, CopyAssetBoxMode.CloneProgram, _accountname);
 
             if (form.ShowDialog() == DialogResult.OK)
             {
@@ -14102,7 +14180,7 @@ namespace AMSExplorer
         private void DoCloneChannels()
         {
             var SelectedChannels = ReturnSelectedChannels();
-            CopyAsset form = new CopyAsset(_context, 1, CopyAssetBoxMode.CloneChannel);
+            CopyAsset form = new CopyAsset(_context, 1, CopyAssetBoxMode.CloneChannel, _accountname);
 
             if (form.ShowDialog() == DialogResult.OK)
             {
@@ -14174,7 +14252,7 @@ namespace AMSExplorer
 
         private void DoExportMetadata()
         {
-            ExportToExcel form = new ExportToExcel(_context, ReturnSelectedAssets(), dataGridViewAssetsV.assets);
+            ExportToExcel form = new ExportToExcel(_context, _accountname, ReturnSelectedAssets(), dataGridViewAssetsV.assets);
             if (form.ShowDialog() == DialogResult.OK)
             {
 
@@ -14680,7 +14758,6 @@ namespace AMSExplorer
                 storKey = _credentials.DefaultStorageKey;
             }
 
-
             if (!fileencrypted)
             {
                 foreach (var asset in assetFiles)
@@ -14698,23 +14775,33 @@ namespace AMSExplorer
                     }
                 }
             }
-            else
+            else // files encrypted
             {
-                foreach (var asset in im.IngestManifestAssets)
-                {
-                    foreach (var file in asset.IngestManifestFiles)
-                    {
-                        command.AppendLine(
-                            string.Format(@"AzCopy /Source:""{0}"" /Dest:{1} /DestKey:{2} /Pattern:""{3}""",
-                            encryptedfilefolder,
-                            im.BlobStorageUriForUpload,
-                            storKey,
-                            im.StorageAccountName,
-                            file.Name
-                            )
-                            );
-                    }
-                }
+                command.AppendLine(
+                         string.Format(@"AzCopy /Source:""{0}"" /Dest:{1} /DestKey:{2} /Pattern:""*""",
+                         encryptedfilefolder,
+                         im.BlobStorageUriForUpload,
+                         storKey
+                         )
+                         );
+
+                /*
+             foreach (var asset in im.IngestManifestAssets)
+             {
+                 foreach (var file in asset.IngestManifestFiles)
+                 {
+                     command.AppendLine(
+                         string.Format(@"AzCopy /Source:""{0}"" /Dest:{1} /DestKey:{2} /Pattern:""{3}""",
+                         encryptedfilefolder,
+                         im.BlobStorageUriForUpload,
+                         storKey,
+                         file.Name
+                         )
+                         );
+                 }
+                
+            }
+             */
             }
 
             return command.ToString();
@@ -17972,9 +18059,10 @@ namespace AMSExplorer
                            }
 
                            // refesh context and job
-                           _context = Program.ConnectAndGetNewContext(_credentials); // needed to get overallprogress
-                                                                                     /// NET TO RESTORE CONTEXT
+                           //_context = Program.ConnectAndGetNewContext(_credentials); // needed to get overallprogress
+                           /// NET TO RESTORE CONTEXT
                            IJob JobRefreshed = GetJob(j.Id);
+                           JobRefreshed.Refresh();
                            int index = -1;
 
                            foreach (JobEntry je in _MyObservJob) // let's search for index

@@ -23,24 +23,19 @@ using System.Configuration;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.MediaServices.Client;
 using System.Globalization;
 using System.Net;
-using System.Runtime.Serialization.Json;
 using System.Web;
-using System.Xml;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Blob.Protocol;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Drawing;
 using System.Diagnostics;
 using Microsoft.WindowsAzure.MediaServices.Client.ContentKeyAuthorization;
 using Microsoft.WindowsAzure.MediaServices.Client.DynamicEncryption;
 using System.Xml.Linq;
-using System.Runtime.ExceptionServices;
 using System.Collections;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -50,6 +45,8 @@ using Newtonsoft.Json.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System.Net.Http;
 
 namespace AMSExplorer
 {
@@ -98,68 +95,94 @@ namespace AMSExplorer
         public static CloudMediaContext ConnectAndGetNewContext(CredentialsEntry credentials, bool refreshToken = false, bool displayErrorMessageAndQuit = true)
         {
             CloudMediaContext myContext = null;
-            if (credentials.UsePartnerAPI)
+            if (credentials.UseAADInteract)
             {
-                // Get the service context for partner context.
-                try
-                {
-                    Uri partnerAPIServer = new Uri(CredentialsEntry.PartnerAPIServer);
-                    myContext = new CloudMediaContext(partnerAPIServer, credentials.AccountName, credentials.AccountKey, CredentialsEntry.PartnerScope, CredentialsEntry.PartnerACSBaseAddress);
-                }
-                catch (Exception e)
-                {
-                    if (displayErrorMessageAndQuit)
-                    {
-                        MessageBox.Show("There is a credentials problem when connecting to Azure Media Services (custom API)." + Constants.endline + "Application will close. " + Constants.endline + e.Message);
-                        Environment.Exit(0);
-                    }
-                    else
-                    {
-                        throw e;
-                    }
-                }
+
+                /*
+                                string requestUrl = string.Format("https://login.microsoftonline.com/{0}/oauth2/logout?post_logout_redirect_uri={1}", credentials.ADTenantDomain, credentials.ADRestAPIEndpoint);
+                                var client = new HttpClient();
+                                var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+                                Task.Run(async () => { await client.SendAsync(request); }).Wait();
+                */
+                var tokenCredentials = new AzureAdTokenCredentials(credentials.ADTenantDomain, AzureEnvironments.AzureCloudEnvironment);
+                var tokenProvider = new AzureAdTokenProvider(tokenCredentials);
+
+                myContext = new CloudMediaContext(new Uri(credentials.ADRestAPIEndpoint), tokenProvider);
             }
-            else if (credentials.UseOtherAPI)
+            else if (credentials.UseAADServicePrincipal)
             {
-                try
-                {
-                    Uri otherAPIServer = new Uri(credentials.OtherAPIServer);
-                    myContext = new CloudMediaContext(otherAPIServer, credentials.AccountName, credentials.AccountKey, credentials.OtherScope, credentials.OtherACSBaseAddress);
-                }
-                catch (Exception e)
-                {
-                    if (displayErrorMessageAndQuit)
-                    {
-                        MessageBox.Show("There is a credentials problem when connecting to Azure Media Services (Partner API)." + Constants.endline + "Application will close." + Constants.endline + e.Message);
-                        Environment.Exit(0);
-                    }
-                    else
-                    {
-                        throw e;
-                    }
-                }
+                AzureAdClientSymmetricKey clientSymmetricKey = new AzureAdClientSymmetricKey(credentials.ADSPClientId, credentials.ADSPClientSecret);
+                var tokenCredentials = new AzureAdTokenCredentials(credentials.ADTenantDomain, clientSymmetricKey, AzureEnvironments.AzureCloudEnvironment);
+                var tokenProvider = new AzureAdTokenProvider(tokenCredentials);
+                myContext = new CloudMediaContext(new Uri(credentials.ADRestAPIEndpoint), tokenProvider);
             }
             else
             {
-                // Get the service context.
-                try
+                if (credentials.UsePartnerAPI)
                 {
-                    myContext = new CloudMediaContext(credentials.AccountName, credentials.AccountKey);
-                }
-                catch (Exception e)
-                {
-                    if (displayErrorMessageAndQuit)
+                    // Get the service context for partner context.
+                    try
                     {
-                        MessageBox.Show("There is a credentials problem when connecting to Azure Media Services." + Constants.endline + "Application will close." + Constants.endline + e.Message);
-                        Environment.Exit(0);
+                        Uri partnerAPIServer = new Uri(CredentialsEntry.PartnerAPIServer);
+                        myContext = new CloudMediaContext(partnerAPIServer, credentials.AccountName, credentials.AccountKey, CredentialsEntry.PartnerScope, CredentialsEntry.PartnerACSBaseAddress);
                     }
-                    else
+                    catch (Exception e)
                     {
-                        throw e;
+                        if (displayErrorMessageAndQuit)
+                        {
+                            MessageBox.Show("There is a credentials problem when connecting to Azure Media Services (custom API)." + Constants.endline + "Application will close. " + Constants.endline + e.Message);
+                            Environment.Exit(0);
+                        }
+                        else
+                        {
+                            throw e;
+                        }
+                    }
+                }
+                else if (credentials.UseOtherAPI)
+                {
+                    try
+                    {
+                        Uri otherAPIServer = new Uri(credentials.OtherAPIServer);
+                        myContext = new CloudMediaContext(otherAPIServer, credentials.AccountName, credentials.AccountKey, credentials.OtherScope, credentials.OtherACSBaseAddress);
+
+                    }
+                    catch (Exception e)
+                    {
+                        if (displayErrorMessageAndQuit)
+                        {
+                            MessageBox.Show("There is a credentials problem when connecting to Azure Media Services (Partner API)." + Constants.endline + "Application will close." + Constants.endline + e.Message);
+                            Environment.Exit(0);
+                        }
+                        else
+                        {
+                            throw e;
+                        }
+                    }
+                }
+                else
+                {
+                    // Get the service context.
+                    try
+                    {
+                        myContext = new CloudMediaContext(credentials.AccountName, credentials.AccountKey);
+                    }
+                    catch (Exception e)
+                    {
+                        if (displayErrorMessageAndQuit)
+                        {
+                            MessageBox.Show("There is a credentials problem when connecting to Azure Media Services." + Constants.endline + "Application will close." + Constants.endline + e.Message);
+                            Environment.Exit(0);
+                        }
+                        else
+                        {
+                            throw e;
+                        }
                     }
                 }
             }
-            if (refreshToken)
+
+            if (false)//refreshToken)
             {
                 try
                 {
@@ -179,6 +202,9 @@ namespace AMSExplorer
                     }
                 }
             }
+
+            myContext.NumberOfConcurrentTransfers = Properties.Settings.Default.NumberOfConcurrentTransfers;
+            myContext.ParallelTransferThreadCount = Properties.Settings.Default.ParallelTransferThreadCount;
 
             return myContext;
         }
@@ -983,7 +1009,7 @@ namespace AMSExplorer
         public const string PlayerJWPlayerPartnership = @"http://www.jwplayer.com/partners/azure/";
         public const string PlayerTHEOplayerPartnership = @"https://www.theoplayer.com/partners/azure";
 
-        public const string DemoCaptionMaker = @"https://dev.modern.ie/testdrive/demos/captionmaker/";
+        public const string DemoCaptionMaker = @"http://go.microsoft.com/fwlink/p/?LinkID=251121";
         public const string AMSSamples = @"https://github.com/AzureMediaServicesSamples";
 
         public const string LinkFeedbackAMS = "http://aka.ms/amsvoice";
@@ -1064,6 +1090,7 @@ namespace AMSExplorer
         public const string LinkWidevineTemplateInfo = "https://docs.microsoft.com/en-us/azure/media-services/media-services-widevine-license-template-overview";
 
         public const string LinkAMSCreateAccount = "https://docs.microsoft.com/en-us/azure/media-services/media-services-portal-create-account";
+        public const string LinkAMSAADAut = "https://docs.microsoft.com/en-us/azure/media-services/media-services-portal-get-started-with-aad";
 
         public const string LinkAMSE = "http://aka.ms/amse";
         public const string LinkMailtoAMSE = "mailto:amse@microsoft.com?subject=Azure Media Services Explorer - Question/Comment";
@@ -1105,16 +1132,19 @@ namespace AMSExplorer
     public class JobInfo
     {
         private List<IJob> SelectedJobs;
+        private string _accountname;
 
-        public JobInfo(IJob job)
+        public JobInfo(IJob job, string accountname)
         {
             SelectedJobs = new List<IJob>();
             SelectedJobs.Add(job);
+            _accountname = accountname;
 
         }
-        public JobInfo(List<IJob> MySelectedJobs)
+        public JobInfo(List<IJob> MySelectedJobs, string accountname)
         {
             SelectedJobs = MySelectedJobs;
+            _accountname = accountname;
         }
 
         public void CreateOutlookMail()
@@ -1460,7 +1490,7 @@ namespace AMSExplorer
                         sb.AppendLine("Job Duration        : " + elapsedTime);
                     }
                     sb.AppendLine("Number of tasks     : " + theJob.Tasks.Count);
-                    sb.AppendLine("Media Account       : " + theJob.GetMediaContext().Credentials.ClientId);
+                    sb.AppendLine("Media Account       : " + _accountname);
                     sb.AppendLine("");
                     sb.AppendLine(section);
                     foreach (ITask task in theJob.Tasks)
@@ -3680,7 +3710,7 @@ namespace AMSExplorer
 
     }
 
-    public class EndPointMapping
+    public class ACSEndPointMapping
     {
         public string Name { get; set; }
         public string APIServer { get; set; }
@@ -3689,6 +3719,15 @@ namespace AMSExplorer
         public string AzureEndpoint { get; set; }
         public string ManagementPortal { get; set; }
     }
+
+
+    public class AADEndPointMapping
+    {
+        public string Name { get; set; }
+
+        public string ManagementPortal { get; set; }
+    }
+
 
     public class ExplorerOpenIDSample
     {
@@ -3713,10 +3752,19 @@ namespace AMSExplorer
     public class CredentialsEntry : IEquatable<CredentialsEntry>
     {
         public string AccountName { get; set; }
-        public string AccountId { get; set; }
         public string AccountKey { get; set; }
+        public string ADTenantDomain { get; set; }
+        public string ADRestAPIEndpoint { get; set; }
+        public string ADDeploymentName { get; set; }
+        public AzureEnvironment ADCustomSettings { get; set; }
+        [JsonIgnore] // In order to not export the SP credential
+        public string ADSPClientId { get; set; }
+        [JsonIgnore] // In order to not export the SP credential
+        public string ADSPClientSecret { get; set; }
         public string DefaultStorageKey { get; set; }
         public string Description { get; set; }
+        public bool UseAADInteract { get; set; }
+        public bool UseAADServicePrincipal { get; set; }
         public bool UsePartnerAPI { get; set; }
         public bool UseOtherAPI { get; set; }
         public string OtherAPIServer { get; set; }
@@ -3724,6 +3772,7 @@ namespace AMSExplorer
         public string OtherACSBaseAddress { get; set; }
         public string OtherAzureEndpoint { get; set; }
         public string OtherManagementPortal { get; set; }
+
 
         public static readonly int StringsCount = 10; // number of strings
         public static readonly string PartnerAPIServer = "https://nimbuspartners.cloudapp.net/API/";
@@ -3741,54 +3790,133 @@ namespace AMSExplorer
         public static readonly string GlobalPortal = "http://portal.azure.com";
 
 
-        public CredentialsEntry(string accountname, string accountkey, string storagekey, string accountid, string description, bool usepartnerapi, bool useotherapi, string apiserver, string scope, string acsbaseaddress, string azureendpoint, string managementportal)
+        public CredentialsEntry(string accountname, string accountkey, string adtenantdomain, string adrestapiendpoint, string storagekey, string description, bool useaadinterative, bool useaadserviceprincipal, bool useacspartnerapi, bool useacsotherapi, string acsapiserver, string acsscope, string acsbaseaddress, string acsazureendpoint, string managementportal, string addeploymentname = null, AzureEnvironment adcustomsettings = null, string adspclientid = null, string adspclientsecret = null)
         {
             AccountName = accountname;
             AccountKey = accountkey;
+            ADTenantDomain = string.IsNullOrEmpty(adtenantdomain) ? null : adtenantdomain;
+            ADRestAPIEndpoint = string.IsNullOrEmpty(adrestapiendpoint) ? null : adrestapiendpoint;
             DefaultStorageKey = storagekey;
-            AccountId = accountid;
             Description = description;
-            UsePartnerAPI = usepartnerapi;
-            UseOtherAPI = useotherapi;
-            OtherAPIServer = apiserver;
-            OtherScope = scope;
-            OtherACSBaseAddress = acsbaseaddress;
-            OtherAzureEndpoint = azureendpoint;
-            OtherManagementPortal = managementportal;
+            UseAADInteract = useaadinterative;
+            UseAADServicePrincipal = useaadserviceprincipal;
+            UsePartnerAPI = useacspartnerapi;
+            UseOtherAPI = useacsotherapi;
+            OtherAPIServer = string.IsNullOrEmpty(acsapiserver) ? null : acsapiserver;
+            OtherScope = string.IsNullOrEmpty(acsscope) ? null : acsscope;
+            OtherACSBaseAddress = string.IsNullOrEmpty(acsbaseaddress) ? null : acsbaseaddress;
+            OtherAzureEndpoint = string.IsNullOrEmpty(acsazureendpoint) ? null : acsazureendpoint;
+            OtherManagementPortal = string.IsNullOrEmpty(managementportal) ? null : managementportal;
+            ADSPClientId = adspclientid;
+            ADSPClientSecret = adspclientsecret;
+            ADDeploymentName = addeploymentname;
+            ADCustomSettings = adcustomsettings;
         }
 
         public bool Equals(CredentialsEntry other)
         {
             return
-                this.AccountId == other.AccountId
-                && this.AccountKey == other.AccountKey
-                && this.AccountName == other.AccountName
-                && this.Description == other.Description
-                && this.OtherACSBaseAddress == other.OtherACSBaseAddress
-                && this.OtherAPIServer == other.OtherAPIServer
-                && this.OtherAzureEndpoint == other.OtherAzureEndpoint
-                && this.OtherManagementPortal == other.OtherManagementPortal
-                && this.OtherScope == other.OtherScope
-                && this.DefaultStorageKey == other.DefaultStorageKey
+                (this.AccountKey ?? "") == (other.AccountKey ?? "")
+                && (this.AccountName ?? "") == (other.AccountName ?? "")
+                && (this.ADRestAPIEndpoint ?? "") == (other.ADRestAPIEndpoint ?? "")
+                && (this.ADTenantDomain ?? "") == (other.ADTenantDomain ?? "")
+                && this.UseAADInteract == other.UseAADInteract
+                && this.UseAADServicePrincipal == other.UseAADServicePrincipal
+                && (this.ADDeploymentName ?? "") == (other.ADDeploymentName ?? "")
+                && (this.ADCustomSettings) == (other.ADCustomSettings)
+                && this.UseOtherAPI == other.UseOtherAPI
+                && this.UsePartnerAPI == other.UsePartnerAPI
+                && (this.Description ?? "") == (other.Description ?? "")
+                && (this.OtherACSBaseAddress ?? "") == (other.OtherACSBaseAddress ?? "")
+                && (this.OtherAPIServer ?? "") == (other.OtherAPIServer ?? "")
+                && (this.OtherAzureEndpoint ?? "") == (other.OtherAzureEndpoint ?? "")
+                && (this.OtherManagementPortal ?? "") == (other.OtherManagementPortal ?? "")
+                && (this.OtherScope ?? "") == (other.OtherScope ?? "")
+                && (this.DefaultStorageKey ?? "") == (other.DefaultStorageKey ?? "")
                  ;
         }
 
         public string GetTableEndPoint(string mediaServicesStorageAccountName)
         {
-            string SampleStorageURLTemplate = UseOtherAPI ?
-            CredentialsEntry.TableStorage + OtherAzureEndpoint : // ".table.core.chinacloudapi.cn/"
-            CredentialsEntry.TableStorage + CredentialsEntry.GlobalAzureEndpoint; // ".table.core.windows.net"
+            if (!UseAADInteract && !UseAADServicePrincipal) // ACS Mode
+            {
+                string SampleStorageURLTemplate = UseOtherAPI ?
+                        CredentialsEntry.TableStorage + OtherAzureEndpoint : // ".table.core.chinacloudapi.cn/"
+                        CredentialsEntry.TableStorage + CredentialsEntry.GlobalAzureEndpoint; // ".table.core.windows.net"
 
-            return "https://" + mediaServicesStorageAccountName + SampleStorageURLTemplate;
+                return "https://" + mediaServicesStorageAccountName + SampleStorageURLTemplate;
+            }
+            else // AAD Mode
+            {
+                if (ADDeploymentName != null) // one of the default
+                {
+                    return "https://" + mediaServicesStorageAccountName + CredentialsEntry.TableStorage + ReturnHostNameTwoSegmentsRight(ReturnADEnvironment(ADDeploymentName).MediaServicesResource); // "https://accountname.table.core.cloudapi.de"
+                }
+                else if (ADCustomSettings != null)
+                {
+                    return "https://" + mediaServicesStorageAccountName + CredentialsEntry.TableStorage + ReturnHostNameTwoSegmentsRight(ADCustomSettings.MediaServicesResource); // "https://accountname.table.core.cloudapi.de"
+                }
+                else // Global
+                {
+                    return "https://" + mediaServicesStorageAccountName + CredentialsEntry.TableStorage + CredentialsEntry.GlobalAzureEndpoint; // "https://accountname.table.core.windows.net"
+
+                }
+            }
         }
 
-        // return the storage suffix for China, or null for Global Azure
+        private string ReturnHostNameTwoSegmentsRight(string myUrl)
+        {
+            var hosts = (new Uri(myUrl)).Host.Split('.');
+            int i = hosts.Count();
+            return hosts[i - 2] + "." + hosts[i - 1];
+        }
+
+        public static AzureEnvironment ReturnADEnvironment(string ADDeploymentName) // Return the AzureEnvonment based on name
+        {
+            Type myType = typeof(AzureEnvironments);
+            FieldInfo[] myFields = myType.GetFields(BindingFlags.Static | BindingFlags.Public);
+            var found = myFields.Where(f => f.Name == ADDeploymentName).FirstOrDefault();
+            if (found != null)
+            {
+                return (AzureEnvironment)myFields.Where(f => f.Name == ADDeploymentName).FirstOrDefault().GetValue(myType);
+
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // return the storage suffix for China, Germany etc, or null for Global Azure
         public string ReturnStorageSuffix()
         {
+            /*
             if (UseOtherAPI)
                 return CoreStorage + OtherAzureEndpoint;
             else
                 return null;
+                */
+
+
+            if (!UseAADInteract && !UseAADServicePrincipal) // ACS Mode
+            {
+                return UseOtherAPI ? CoreStorage + OtherAzureEndpoint : null;
+            }
+            else // AAD Mode
+            {
+                if (ADDeploymentName != null) // one of the default
+                {
+                    return ReturnHostNameTwoSegmentsRight(ReturnADEnvironment(ADDeploymentName).MediaServicesResource); // "https://accountname.table.core.cloudapi.de"
+                }
+                else if (ADCustomSettings != null)
+                {
+                    return ReturnHostNameTwoSegmentsRight(ADCustomSettings.MediaServicesResource); // "https://accountname.table.core.cloudapi.de"
+                }
+                else // Global
+                {
+                    return null;
+                }
+            }
         }
     }
 
@@ -4129,7 +4257,6 @@ namespace AMSExplorer
             return token;
         }
     }
-
 
     public class ListViewItemComparer : IComparer
     {
