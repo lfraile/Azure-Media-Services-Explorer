@@ -73,7 +73,6 @@ namespace AMSExplorer
         private bool AMMotionDetectorPresent = true;
         private bool AMStabilizerPresent = true;
         private bool AMVideoThumbnailsPresent = true;
-        private bool AMIndexerV2Present = true;
         private bool AMVideoOCRPresent = true;
         private bool AMContentModerator = true;
         private bool AMVideoAnnotator = true;
@@ -259,12 +258,6 @@ namespace AMSExplorer
                 AMVideoThumbnailsPresent =
                 ProcessVideoThumbnailstoolStripMenuItem.Visible =
                 toolStripMenuItemVideoThumbnails.Visible = false;
-            }
-            if (GetLatestMediaProcessorByName(Constants.AzureMediaIndexer2Preview) == null)
-            {
-                AMIndexerV2Present =
-                toolStripMenuItemIndexv2.Visible =
-                toolStripMenuItem38Indexer2.Visible = false;
             }
             if (GetLatestMediaProcessorByName(Constants.AzureMediaVideoOCR) == null)
             {
@@ -2883,23 +2876,17 @@ namespace AMSExplorer
 
             if (SelectedAssets.Count > 0)
             {
-                string question = (SelectedAssets.Count == 1) ? "Delete " + SelectedAssets[0].Name + " ?" : "Delete these " + SelectedAssets.Count + " assets ?";
-                if (System.Windows.Forms.MessageBox.Show(question, "Asset deletion", System.Windows.Forms.MessageBoxButtons.YesNo, MessageBoxIcon.Question) == System.Windows.Forms.DialogResult.Yes)
+                var form = new DeleteKeyAndPolicy(SelectedAssets.Count);
+
+                if (form.ShowDialog() == DialogResult.OK)
                 {
                     Task.Run(async () =>
                     {
                         bool Error = false;
                         try
                         {
-                            //Task[] deleteTasks = SelectedAssets.Select(a => a.DeleteAsync()).ToArray();
-                            Task[] deleteTasks = SelectedAssets.Select(a => DynamicEncryption.DeleteAssetAsync(_context, a)).ToArray();
+                            Task[] deleteTasks = SelectedAssets.Select(a => DynamicEncryption.DeleteAssetAsync(_context, a, form.DeleteDeliveryPolicies, form.DeleteKeys, form.DeleteAuthorizationPolicies)).ToArray();
                             TextBoxLogWriteLine("Deleting asset(s)");
-                            /*
-                           foreach (var asset in SelectedAssets)
-                            {
-                                DynamicEncryption.DeleteAsset(_context, asset);
-                            }
-                            */
                             Task.WaitAll(deleteTasks);
                         }
                         catch (Exception ex)
@@ -4703,13 +4690,13 @@ namespace AMSExplorer
 
             IMediaProcessor processor = GetLatestMediaProcessorByName(Constants.AzureMediaEncoderPremiumWorkflow);
 
-            string taskname = "Premium Workflow Encoding of " + Constants.NameconvInputasset + " with " + Constants.NameconvWorkflow;
+            string taskname = string.Format("{0} - MEPW v{1} - {2}", Constants.NameconvInputasset, Constants.NameconvProcessorversion, Constants.NameconvWorkflow);
             this.Cursor = Cursors.WaitCursor;
             EncodingPremium form = new EncodingPremium(_context, processor.Version)
             {
                 EncodingPromptText = (SelectedAssets.Count > 1) ? "Input assets : " + SelectedAssets.Count + " assets have been selected." : "Input asset : '" + SelectedAssets.FirstOrDefault().Name + "'",
-                EncodingJobName = "Premium Workflow Encoding of " + Constants.NameconvInputasset,
-                EncodingOutputAssetName = Constants.NameconvInputasset + " - Premium Workflow encoded",
+                EncodingJobName = string.Format("{0} - MEPW - {2}", Constants.NameconvInputasset, Constants.NameconvProcessorversion, Constants.NameconvWorkflow),
+                EncodingOutputAssetName = string.Format("{0} - MEPW v{1} - {2}", Constants.NameconvInputasset, Constants.NameconvProcessorversion, Constants.NameconvWorkflow),
                 EncodingNumberOfInputAssets = SelectedAssets.Count,
                 EncodingPremiumWorkflowPresetXMLFiles = Properties.Settings.Default.PremiumWorkflowPresetXMLFilesCurrentFolder,
 
@@ -4732,12 +4719,12 @@ namespace AMSExplorer
                 // multiple jobs: one job for each input asset
                 foreach (IAsset asset in SelectedAssets)
                 {
-                    string jobnameloc = form.EncodingJobName.Replace(Constants.NameconvInputasset, asset.Name);
+                    string jobnameloc = form.EncodingJobName.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvWorkflow, string.Join(" ", form.SelectedPremiumWorkflows.Select(g => g.Name)));
 
                     IJob job = _context.Jobs.Create(jobnameloc, form.JobOptions.Priority);
                     foreach (IAsset graphAsset in form.SelectedPremiumWorkflows) // for each workflow selected, we create a task
                     {
-                        string tasknameloc = taskname.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvWorkflow, graphAsset.Name);
+                        string tasknameloc = taskname.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvWorkflow, graphAsset.Name).Replace(Constants.NameconvProcessorversion, processor.Version);
 
                         ITask task = job.Tasks.AddNew(
                                     tasknameloc,
@@ -4748,7 +4735,7 @@ namespace AMSExplorer
                         // Specify the graph asset to be encoded, followed by the input video asset to be used
                         task.InputAssets.Add(graphAsset);
                         task.InputAssets.Add(asset); // we add one asset
-                        string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvWorkflow, graphAsset.Name);
+                        string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvWorkflow, graphAsset.Name).Replace(Constants.NameconvProcessorversion, processor.Version);
 
                         task.OutputAssets.AddNew(outputassetnameloc, form.JobOptions.StorageSelected, form.JobOptions.OutputAssetsCreationOptions, form.JobOptions.OutputAssetsFormatOption);
                     }
@@ -5188,7 +5175,7 @@ namespace AMSExplorer
             }
         }
 
-        private void DoMenuVideoAnalyticsFaceRedaction(string processorStr, Image processorImage, string urlMoreInfo, string preset = null, bool preview = true)
+        private void DoMenuVideoAnalyticsFaceRedaction(string processorStr, Image processorImage, string urlMoreInfo, string preset = null)
         {
             List<IAsset> SelectedAssets = ReturnSelectedAssets();
 
@@ -5205,7 +5192,7 @@ namespace AMSExplorer
                 // Get the SDK extension method to  get a reference to the processor.
                 IMediaProcessor processor = GetLatestMediaProcessorByName(processorStr);
 
-                var form = new MediaAnalyticsRedaction(_context, processor, processorImage, preview)
+                var form = new MediaAnalyticsRedaction(_context, processor, processorImage)
                 {
                     MIJobName = string.Format("Redaction ({0} mode) of {1}", Constants.NameconvRedactionMode, Constants.NameconvInputasset),
                     MIOutputAssetName = string.Format("{0} - Redacted ({1} mode)", Constants.NameconvInputasset, Constants.NameconvRedactionMode),
@@ -5749,7 +5736,16 @@ namespace AMSExplorer
             //CheckPrimaryFileExtension(SelectedAssets, new[] { ".MP4", ".WMV", ".MP3", ".M4A", ".WMA", ".AAC", ".WAV" });
 
             // Get the SDK extension method to  get a reference to the Azure Media Indexer.
-            IMediaProcessor processor = GetLatestMediaProcessorByName(Constants.AzureMediaIndexer2Preview);
+
+            IMediaProcessor processor = GetLatestMediaProcessorByName(Constants.AzureMediaIndexer2);
+            if (processor == null)
+            {
+                processor = GetLatestMediaProcessorByName(Constants.AzureMediaIndexer2Preview);
+            }
+            if (processor == null)
+            {
+                return;
+            }
 
             var form = new IndexerV2(_context, processor.Version)
             {
@@ -8007,13 +8003,6 @@ namespace AMSExplorer
                 toolStripMenuItemVideoThumbnails.Enabled = false;
             }
 
-            // let's disable Indexer v2 if not present
-            if (!AMIndexerV2Present)
-            {
-                toolStripMenuItemIndexv2.Enabled =
-                toolStripMenuItem38Indexer2.Enabled = false;
-            }
-
             // let's disable Video OCR if not present
             if (!AMVideoOCRPresent)
             {
@@ -8401,7 +8390,6 @@ namespace AMSExplorer
                 dataGridViewFilters.Columns[5].Width = 144;
             }
             dataGridViewFilters.Rows.Clear();
-            //List<Filter> filters = _contextdynmanifest.ListGlobalFilters();
 
             foreach (var filter in _context.Filters)
             {
@@ -8438,7 +8426,15 @@ namespace AMSExplorer
                     d = (dvr != null) ? ((TimeSpan)dvr).ToString(@"d\.hh\:mm\:ss") : "max";
                     l = (live != null) ? ((TimeSpan)live).ToString(@"d\.hh\:mm\:ss") : "min";
                 }
-                int rowi = dataGridViewFilters.Rows.Add(filter.Name, filter.Tracks.Count, s, e, d, l);
+                try
+                {
+                    var nbtracks = filter.Tracks.Count;
+                    int rowi = dataGridViewFilters.Rows.Add(filter.Name, filter.Tracks.Count, s, e, d, l);
+                }
+                catch
+                {
+                    int rowi = dataGridViewFilters.Rows.Add(filter.Name, "Error", s, e, d, l);
+                }
             }
             tabPageFilters.Text = string.Format(AMSExplorer.Properties.Resources.TabFilters + " ({0})", _context.Filters.Count());
         }
@@ -11185,7 +11181,7 @@ namespace AMSExplorer
                     try
                     {
                         //formerkey.Delete();
-                        DynamicEncryption.CleanupKey(_context, formerkey);
+                        DynamicEncryption.DeleteKeyAuthorizationPolicyAndFairplayAsk(_context, formerkey);
                         TextBoxLogWriteLine("Key has been deleted.");
                     }
                     catch (Exception e)
@@ -11933,7 +11929,7 @@ namespace AMSExplorer
                                 // deleting authorization policies & options
                                 foreach (var key in CENCAESkeys)
                                 {
-                                    DynamicEncryption.CleanupKey(_context, key);
+                                    DynamicEncryption.DeleteKeyAuthorizationPolicyAndFairplayAsk(_context, key);
                                     AssetToProcess.ContentKeys.Remove(key);
                                     //if (deleteKeys) AssetToProcess.ContentKeys.Remove(key);
                                 }
@@ -13871,7 +13867,7 @@ namespace AMSExplorer
                     MultipleInputAssets = true;
             }
 
-            string taskname = string.Format("Media Encoder Standard processing of {0} with {1}", Constants.NameconvInputasset, Constants.NameconvEncodername);
+            string taskname = string.Format("{0} - MES v{1}", Constants.NameconvInputasset, Constants.NameconvProcessorversion);
 
             var processor = GetLatestMediaProcessorByName(Constants.AzureMediaEncoderStandard);
 
@@ -13889,7 +13885,6 @@ namespace AMSExplorer
                 label = "Asset '" + SelectedAssets.FirstOrDefault().Name + "' will be encoded (1 job with 1 task).";
             }
 
-
             EncodingMES form = new EncodingMES(_context,
                 MultipleInputAssets ? SelectedAssets : new List<IAsset>(),
                 processor.Version,
@@ -13898,8 +13893,8 @@ namespace AMSExplorer
                 main: this)
             {
                 EncodingLabel = label,
-                EncodingJobName = "Media Encoder Standard processing of " + Constants.NameconvInputasset,
-                EncodingOutputAssetName = Constants.NameconvInputasset + " - Media Standard encoded",
+                EncodingJobName = string.Format("{0} - MES", Constants.NameconvInputasset),
+                EncodingOutputAssetName = string.Format("{0} - MES v{1}", Constants.NameconvInputasset, Constants.NameconvProcessorversion),
                 EncodingAMEStdPresetJSONFilesUserFolder = Properties.Settings.Default.MESPresetFilesCurrentFolder,
                 EncodingAMEStdPresetJSONFilesFolder = Application.StartupPath + Constants.PathMESFiles,
                 SelectedAssets = SelectedAssets
@@ -13915,7 +13910,7 @@ namespace AMSExplorer
                     bool Error = false;
                     string jobnameloc = form.EncodingJobName.Replace(Constants.NameconvInputasset, form.SelectedAssets[0].Name);
                     IJob job = _context.Jobs.Create(jobnameloc, form.JobOptions.Priority);
-                    string tasknameloc = taskname.Replace(Constants.NameconvInputasset, form.SelectedAssets[0].Name).Replace(Constants.NameconvEncodername, processor.Name + " v" + processor.Version);
+                    string tasknameloc = taskname.Replace(Constants.NameconvInputasset, form.SelectedAssets[0].Name).Replace(Constants.NameconvProcessorversion, processor.Version);
                     ITask AMEStandardTask = job.Tasks.AddNew(
                         tasknameloc,
                         processor,
@@ -13926,7 +13921,7 @@ namespace AMSExplorer
                     AMEStandardTask.InputAssets.AddRange(form.SelectedAssets);
 
                     // Add an output asset to contain the results of the job.  
-                    string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, form.SelectedAssets[0].Name);
+                    string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, form.SelectedAssets[0].Name).Replace(Constants.NameconvProcessorversion, processor.Version);
                     AMEStandardTask.OutputAssets.AddNew(outputassetnameloc, form.JobOptions.StorageSelected, form.JobOptions.OutputAssetsCreationOptions, form.JobOptions.OutputAssetsFormatOption);
 
                     // Submit the job  
@@ -13956,7 +13951,8 @@ namespace AMSExplorer
                         bool Error = false;
                         string jobnameloc = form.EncodingJobName.Replace(Constants.NameconvInputasset, asset.Name);
                         IJob job = _context.Jobs.Create(jobnameloc, form.JobOptions.Priority);
-                        string tasknameloc = taskname.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvEncodername, processor.Name + " v" + processor.Version);
+                        string tasknameloc = taskname.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvProcessorversion, processor.Version);
+
                         ITask AMEStandardTask = job.Tasks.AddNew(
                             tasknameloc,
                             processor,
@@ -13967,7 +13963,8 @@ namespace AMSExplorer
                         AMEStandardTask.InputAssets.Add(asset);
 
                         // Add an output asset to contain the results of the job.  
-                        string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, asset.Name);
+                        string outputassetnameloc = form.EncodingOutputAssetName.Replace(Constants.NameconvInputasset, asset.Name).Replace(Constants.NameconvProcessorversion, processor.Version);
+
                         AMEStandardTask.OutputAssets.AddNew(outputassetnameloc, form.JobOptions.StorageSelected, form.JobOptions.OutputAssetsCreationOptions, form.JobOptions.OutputAssetsFormatOption);
 
                         // Submit the job  
@@ -15883,6 +15880,42 @@ namespace AMSExplorer
         private void linkLabelMoreInfoMediaUnits_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start(e.Link.LinkData as string);
+        }
+
+        private void textBoxAssetSearch_KeyDown(object sender, KeyEventArgs e)
+        {
+            // user pressed enter. let's apply the filter
+            if (e.KeyCode == Keys.Enter)
+            {
+                buttonAssetSearch_Click(this, new EventArgs());
+            }
+        }
+
+        private void textBoxJobSearch_KeyDown(object sender, KeyEventArgs e)
+        {
+            // user pressed enter. let's apply the filter
+            if (e.KeyCode == Keys.Enter)
+            {
+                buttonJobSearch_Click(this, new EventArgs());
+            }
+        }
+
+        private void textBoxSearchNameChannel_KeyDown(object sender, KeyEventArgs e)
+        {
+            // user pressed enter. let's apply the filter
+            if (e.KeyCode == Keys.Enter)
+            {
+                buttonSetFilterChannel_Click(this, new EventArgs());
+            }
+        }
+
+        private void textBoxSearchNameProgram_KeyDown(object sender, KeyEventArgs e)
+        {
+            // user pressed enter. let's apply the filter
+            if (e.KeyCode == Keys.Enter)
+            {
+                buttonSetFilterProgram_Click(this, new EventArgs());
+            }
         }
     }
 }

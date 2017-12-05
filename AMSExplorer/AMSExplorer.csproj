@@ -164,6 +164,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DeleteKeyAndPolicy.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeleteKeyAndPolicy.Designer.cs">
+      <DependentUpon>DeleteKeyAndPolicy.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DisplayBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DisplayBox.Designer.cs">
+      <DependentUpon>DisplayBox.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms-DynamicEncryption\AddDynamicEncryptionFrame2_CENC_Cbcs_KeyConfig.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -692,6 +704,11 @@
     <Compile Include="ImportFromAzureStorage.Designer.cs">
       <DependentUpon>ImportFromAzureStorage.cs</DependentUpon>
     </Compile>
+    <None Include="BitmapsPNG\redactor-blur-black.png" />
+    <None Include="BitmapsPNG\redactor-blur-debug.png" />
+    <None Include="BitmapsPNG\redactor-blur-high.png" />
+    <None Include="BitmapsPNG\redactor-blur-low.png" />
+    <None Include="BitmapsPNG\redactor-blur-med.png" />
     <Content Include="Configurations\SampleSemaphore.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -933,8 +950,17 @@
     <EmbeddedResource Include="CreateTestToken.ja.resx">
       <DependentUpon>CreateTestToken.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DeleteKeyAndPolicy.ja.resx">
+      <DependentUpon>DeleteKeyAndPolicy.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DeleteKeyAndPolicy.resx">
+      <DependentUpon>DeleteKeyAndPolicy.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DeleteProgramChannel.ja.resx">
       <DependentUpon>DeleteProgramChannel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DisplayBox.resx">
+      <DependentUpon>DisplayBox.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DownloadToLocal.ja.resx">
       <DependentUpon>DownloadToLocal.cs</DependentUpon>

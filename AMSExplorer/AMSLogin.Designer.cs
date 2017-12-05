@@ -32,12 +32,12 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AMSLogin));
             this.buttonLogin = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.listBoxAcounts = new System.Windows.Forms.ListBox();
             this.buttonSaveToList = new System.Windows.Forms.Button();
             this.buttonDeleteAccountEntry = new System.Windows.Forms.Button();
             this.buttonClear = new System.Windows.Forms.Button();
             this.tabControlAMS = new System.Windows.Forms.TabControl();
             this.tabPageCredentials = new System.Windows.Forms.TabPage();
+            this.linkLabelAADAut = new System.Windows.Forms.LinkLabel();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.radioButtonAADAut = new System.Windows.Forms.RadioButton();
             this.radioButtonACSAut = new System.Windows.Forms.RadioButton();
@@ -95,7 +95,7 @@
             this.labelVersion = new System.Windows.Forms.Label();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
-            this.linkLabelAADAut = new System.Windows.Forms.LinkLabel();
+            this.listViewAccounts = new System.Windows.Forms.ListView();
             this.tabControlAMS.SuspendLayout();
             this.tabPageCredentials.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -120,14 +120,6 @@
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
-            // 
-            // listBoxAcounts
-            // 
-            resources.ApplyResources(this.listBoxAcounts, "listBoxAcounts");
-            this.listBoxAcounts.FormattingEnabled = true;
-            this.listBoxAcounts.Name = "listBoxAcounts";
-            this.listBoxAcounts.SelectedIndexChanged += new System.EventHandler(this.listBoxAccounts_SelectedIndexChanged);
-            this.listBoxAcounts.DoubleClick += new System.EventHandler(this.listBoxAcounts_DoubleClick);
             // 
             // buttonSaveToList
             // 
@@ -178,6 +170,13 @@
             this.tabPageCredentials.Controls.Add(this.label3);
             resources.ApplyResources(this.tabPageCredentials, "tabPageCredentials");
             this.tabPageCredentials.Name = "tabPageCredentials";
+            // 
+            // linkLabelAADAut
+            // 
+            resources.ApplyResources(this.linkLabelAADAut, "linkLabelAADAut");
+            this.linkLabelAADAut.Name = "linkLabelAADAut";
+            this.linkLabelAADAut.TabStop = true;
+            this.linkLabelAADAut.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.accountmgtlink_LinkClicked);
             // 
             // groupBox2
             // 
@@ -564,12 +563,17 @@
             // 
             this.errorProvider1.ContainerControl = this;
             // 
-            // linkLabelAADAut
+            // listViewAccounts
             // 
-            resources.ApplyResources(this.linkLabelAADAut, "linkLabelAADAut");
-            this.linkLabelAADAut.Name = "linkLabelAADAut";
-            this.linkLabelAADAut.TabStop = true;
-            this.linkLabelAADAut.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.accountmgtlink_LinkClicked);
+            this.listViewAccounts.FullRowSelect = true;
+            resources.ApplyResources(this.listViewAccounts, "listViewAccounts");
+            this.listViewAccounts.MultiSelect = false;
+            this.listViewAccounts.Name = "listViewAccounts";
+            this.listViewAccounts.ShowItemToolTips = true;
+            this.listViewAccounts.UseCompatibleStateImageBehavior = false;
+            this.listViewAccounts.View = System.Windows.Forms.View.List;
+            this.listViewAccounts.SelectedIndexChanged += new System.EventHandler(this.listViewAccounts_SelectedIndexChanged);
+            this.listViewAccounts.DoubleClick += new System.EventHandler(this.listBoxAcounts_DoubleClick);
             // 
             // AMSLogin
             // 
@@ -578,6 +582,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this.buttonCancel;
+            this.Controls.Add(this.listViewAccounts);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.pictureBoxJob);
             this.Controls.Add(this.accountmgtlink);
@@ -588,7 +593,6 @@
             this.Controls.Add(this.buttonClear);
             this.Controls.Add(this.buttonDeleteAccountEntry);
             this.Controls.Add(this.buttonSaveToList);
-            this.Controls.Add(this.listBoxAcounts);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "AMSLogin";
@@ -618,7 +622,6 @@
 
         private System.Windows.Forms.Button buttonLogin;
         private System.Windows.Forms.Button buttonCancel;
-        private System.Windows.Forms.ListBox listBoxAcounts;
         private System.Windows.Forms.Button buttonSaveToList;
         private System.Windows.Forms.Button buttonDeleteAccountEntry;
         private System.Windows.Forms.Button buttonClear;
@@ -682,5 +685,6 @@
         private System.Windows.Forms.RadioButton radioButtonAADInteractive;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.LinkLabel linkLabelAADAut;
+        private System.Windows.Forms.ListView listViewAccounts;
     }
 }

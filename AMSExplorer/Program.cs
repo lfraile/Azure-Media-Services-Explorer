@@ -417,9 +417,10 @@ namespace AMSExplorer
             var m4aAssetFiles = asset.AssetFiles.ToList().Where(f => f.Name.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase)).ToArray();
             var mediaAssetFiles = asset.AssetFiles.ToList().Where(f => f.Name.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || f.Name.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase)).ToArray();
 
-            if (mp4AssetFiles.Count() != 0 || m4aAssetFiles.Count() != 0)
+            if (mediaAssetFiles.Count() != 0)
             {
                 // Prepare the manifest
+                string mp4fileuniqueaudio = null;
                 XDocument doc = XDocument.Load(Path.Combine(Application.StartupPath + Constants.PathManifestFile, @"Manifest.ism"));
 
                 XNamespace ns = "http://www.w3.org/2001/SMIL20/Language";
@@ -429,12 +430,6 @@ namespace AMSExplorer
 
                 var switchxml = body2.Element(ns + "switch");
 
-                // video tracks
-                foreach (var file in mp4AssetFiles)
-                {
-                    switchxml.Add(new XElement(ns + "video", new XAttribute("src", file.Name)));
-                }
-
                 // audio tracks (m4a)
                 foreach (var file in m4aAssetFiles)
                 {
@@ -443,17 +438,31 @@ namespace AMSExplorer
 
                 if (m4aAssetFiles.Count() == 0)
                 {
-                    // audio track
+                    // audio track(s)
                     var mp4AudioAssetFilesName = mp4AssetFiles.Where(f =>
-                                                                (f.Name.ToLower().Contains("audio") && !f.Name.ToLower().Contains("video"))
-                                                                ||
-                                                                (f.Name.ToLower().Contains("aac") && !f.Name.ToLower().Contains("h264"))
-                                                                );
+                                                               (f.Name.ToLower().Contains("audio") && !f.Name.ToLower().Contains("video"))
+                                                               ||
+                                                               (f.Name.ToLower().Contains("aac") && !f.Name.ToLower().Contains("h264"))
+                                                               );
 
                     var mp4AudioAssetFilesSize = mp4AssetFiles.OrderBy(f => f.ContentFileSize);
 
                     string mp4fileaudio = (mp4AudioAssetFilesName.Count() == 1) ? mp4AudioAssetFilesName.FirstOrDefault().Name : mp4AudioAssetFilesSize.FirstOrDefault().Name; // if there is one file with audio or AAC in the name then let's use it for the audio track
                     switchxml.Add(new XElement(ns + "audio", new XAttribute("src", mp4fileaudio), new XAttribute("title", "audioname")));
+
+                    if (mp4AudioAssetFilesName.Count() == 1 && mediaAssetFiles.Count() > 1) //looks like there is one audio file and dome other video files
+                    {
+                        mp4fileuniqueaudio = mp4fileaudio;
+                    }
+                }
+
+                // video tracks
+                foreach (var file in mp4AssetFiles)
+                {
+                    if (file.Name != mp4fileuniqueaudio) // we don't put the unique audio file as a video track
+                    {
+                        switchxml.Add(new XElement(ns + "video", new XAttribute("src", file.Name)));
+                    }
                 }
 
                 // manifest filename
@@ -673,6 +682,7 @@ namespace AMSExplorer
             return dialogResult;
         }
 
+
         public static void SaveAndProtectUserConfig()
         {
             try
@@ -683,63 +693,6 @@ namespace AMSExplorer
             {
 
             }
-
-            /*
-            try
-            {
-                string assemblyname = Assembly.GetExecutingAssembly().GetName().Name;
-                System.Configuration.Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
-                ConfigurationSection connStrings = config.GetSection("userSettings/" + assemblyname + ".Properties.Settings");
-
-                if (connStrings != null)
-                {
-                    if (!connStrings.SectionInformation.IsProtected)
-                    {
-                        if (!connStrings.ElementInformation.IsLocked)
-                        {
-                            connStrings.SectionInformation.ProtectSection("RsaProtectedConfigurationProvider");
-                            connStrings.SectionInformation.ForceSave = true;
-                            config.Save(ConfigurationSaveMode.Full);
-                        }
-                    }
-                }
-            }
-
-
-            catch (Exception e)
-            {
-                MessageBox.Show("Step2 " + e.Message);
-            }
-             * */
-
-
-            // let's decrypt as encryption create issues with some users
-            try
-            {
-                string assemblyname = Assembly.GetExecutingAssembly().GetName().Name;
-                System.Configuration.Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
-                ConfigurationSection connStrings = config.GetSection("userSettings/" + assemblyname + ".Properties.Settings");
-
-                if (connStrings != null)
-                {
-                    if (connStrings.SectionInformation.IsProtected)
-                    {
-                        if (!connStrings.ElementInformation.IsLocked)
-                        {
-                            connStrings.SectionInformation.UnprotectSection();
-                            connStrings.SectionInformation.ForceSave = true;
-                            config.Save(ConfigurationSaveMode.Full);
-                        }
-                    }
-                }
-            }
-
-
-            catch (Exception e)
-            {
-                MessageBox.Show("Error " + e.Message);
-            }
-
         }
 
 
@@ -948,6 +901,7 @@ namespace AMSExplorer
         public const string AzureMediaEncoderPremiumWorkflow = "Media Encoder Premium Workflow";
         public const string AzureMediaIndexer = "Azure Media Indexer";
         public const string AzureMediaIndexer2Preview = "Azure Media Indexer 2 Preview";
+        public const string AzureMediaIndexer2 = "Azure Speech Analyzer";
         public const string AzureMediaHyperlapse = "Azure Media Hyperlapse";
         public const string AzureMediaFaceDetector = "Azure Media Face Detector";
         public const string AzureMediaRedactor = "Azure Media Redactor";
@@ -966,6 +920,7 @@ namespace AMSExplorer
         public const string NameconvFormathls = "{Format}";
         public const string NameconvEncodername = "{Encoder}";
         public const string NameconvProcessorname = "{Processor}";
+        public const string NameconvProcessorversion = "{Processor Version}";
         public const string NameconvChannel = "{Channel}";
         public const string NameconvProgram = "{Program}";
         public const string NameconvProtocols = "{Protocols}";
@@ -1121,10 +1076,15 @@ namespace AMSExplorer
         public const string FaceRedactionFirstPass = "analyze";
         public const string FaceRedactionSecondPass = "redact";
 
+        public const string FaceRedactionBlurHigh = "High";
+        public const string FaceRedactionBlurMed = "Med";
+        public const string FaceRedactionBlurLow = "Low";
+        public const string FaceRedactionBlurBox = "Box";
+        public const string FaceRedactionBlurBlack = "Black";
+
         public const string ContentModerationBalance = "Balance";
         public const string ContentModerationQuality = "Quality";
         public const string ContentModerationSpeed = "Speed";
-
 
         public const string VideoThumbnailsOutputVideo = "video";
         public const string VideoThumbnailsOutputImage = "image";
@@ -1687,8 +1647,8 @@ namespace AMSExplorer
         public const string Type_Thumbnails = "Thumbnails";
         public const string _prog_down_https_SAS = "Progressive Download URLs (SAS)";
         public const string _prog_down_http_streaming = "Progressive Download URLs (SE)";
-        public const string _hls_v4 = "HLS v4  URL";
-        public const string _hls_v3 = "HLS v3  URL";
+        public const string _hls_v4 = "HLS v4 URL";
+        public const string _hls_v3 = "HLS v3 URL";
         public const string _dash = "MPEG-DASH URL";
         public const string _smooth = "Smooth Streaming URL";
         public const string _smooth_legacy = "Smooth Streaming (legacy) URL";
@@ -1905,16 +1865,22 @@ namespace AMSExplorer
                         UriKind.Absolute));
             }
 
-            if (se != null)
+            string hostname = null;
+            if (customhostname != null)
             {
-                string hostname = customhostname == null ? se.HostName : customhostname;
-                smoothStreamingUri = smoothStreamingUri.Select(u => new UriBuilder()
-                {
-                    Host = hostname,
-                    Scheme = https ? "https://" : "http://",
-                    Path = AssetInfo.AddAudioTrackToUrlString(AssetInfo.AddProtocolFormatInUrlString(AssetInfo.AddFilterToUrlString(u.AbsolutePath, filter), outputprotocol), audiotrack)
-                }.Uri);
+                hostname = customhostname;
             }
+            else if (se != null)
+            {
+                hostname = se.HostName;
+            }
+
+            smoothStreamingUri = smoothStreamingUri.Select(u => new UriBuilder()
+            {
+                Host = hostname ?? u.Host,
+                Scheme = https ? "https://" : "http://",
+                Path = AssetInfo.AddAudioTrackToUrlString(AssetInfo.AddProtocolFormatInUrlString(AssetInfo.AddFilterToUrlString(u.AbsolutePath, filter), outputprotocol), audiotrack)
+            }.Uri);
 
             return smoothStreamingUri;
         }
@@ -2001,12 +1967,10 @@ namespace AMSExplorer
         }
 
         // return the URL with hostname from streaming endpoint
-        public static Uri RW(Uri url, IStreamingEndpoint se, string filters = null, bool https = false, string customHostName = null, AMSOutputProtocols protocol = AMSOutputProtocols.NotSpecified, string audiotrackname = null, bool HLSNoAudioOnly = false)
+        public static Uri RW(Uri url, IStreamingEndpoint se = null, string filters = null, bool https = false, string customHostName = null, AMSOutputProtocols protocol = AMSOutputProtocols.NotSpecified, string audiotrackname = null, bool HLSNoAudioOnly = false)
         {
             if (url != null)
             {
-                string hostname = se.HostName;
-
                 string path = AddFilterToUrlString(url.AbsolutePath, filters);
                 path = AddProtocolFormatInUrlString(path, protocol);
 
@@ -2019,9 +1983,19 @@ namespace AMSExplorer
                     }
                 }
 
+                string hostname = null;
+                if (customHostName != null)
+                {
+                    hostname = customHostName;
+                }
+                else if (se != null)
+                {
+                    hostname = se.HostName;
+                }
+
                 UriBuilder urib = new UriBuilder()
                 {
-                    Host = customHostName == null ? hostname : customHostName,
+                    Host = hostname ?? url.Host,
                     Scheme = https ? "https://" : "http://",
                     Path = path,
                 };
@@ -2908,7 +2882,10 @@ namespace AMSExplorer
                     sb.AppendLine("Locator Path      : " + locator.Path);
                     sb.AppendLine("");
                     sb.AppendLine(_prog_down_http_streaming + " : ");
-                    foreach (IAssetFile IAF in MyAsset.AssetFiles) sb.AppendLine((new Uri(locator.Path + IAF.Name)).AbsoluteUri);
+                    foreach (IAssetFile IAF in MyAsset.AssetFiles)
+                    {
+                        sb.AppendLine((RW(new Uri(locator.Path + IAF.Name), https: true)).AbsoluteUri);
+                    }
                     sb.AppendLine("");
 
                     if (MyAsset.AssetType == AssetType.MediaServicesHLS) // It is a static HLS asset, so let's propose only the standard HLS V3 locator
@@ -2923,13 +2900,13 @@ namespace AMSExplorer
                         // Smooth or multi MP4
                         if (locator.GetSmoothStreamingUri() != null)
                         {
-                            foreach (var uri in AssetInfo.GetSmoothStreamingUris(locator, SelectedSE))
+                            foreach (var uri in AssetInfo.GetSmoothStreamingUris(locator, SelectedSE, null, true))
                             {
                                 sb.AppendLine(AssetInfo._smooth + " : ");
                                 sb.AppendLine(uri.AbsoluteUri);
                             }
 
-                            foreach (var uri in AssetInfo.GetSmoothStreamingLegacyUris(locator, SelectedSE))
+                            foreach (var uri in AssetInfo.GetSmoothStreamingLegacyUris(locator, SelectedSE, null, true))
                             {
                                 sb.AppendLine(AssetInfo._smooth_legacy + " : ");
                                 sb.AppendLine(uri.AbsoluteUri);
@@ -2938,7 +2915,7 @@ namespace AMSExplorer
 
                         if (locator.GetMpegDashUri() != null)
                         {
-                            foreach (var uri in AssetInfo.GetMpegDashUris(locator, SelectedSE))
+                            foreach (var uri in AssetInfo.GetMpegDashUris(locator, SelectedSE, null, true))
                             {
                                 sb.AppendLine(AssetInfo._dash + " : ");
                                 sb.AppendLine(uri.AbsoluteUri);
@@ -2947,12 +2924,12 @@ namespace AMSExplorer
 
                         if (locator.GetHlsUri() != null)
                         {
-                            foreach (var uri in AssetInfo.GetHlsUris(locator, SelectedSE))
+                            foreach (var uri in AssetInfo.GetHlsUris(locator, SelectedSE, null, true))
                             {
                                 sb.AppendLine(AssetInfo._hls_v4 + " : ");
                                 sb.AppendLine(uri.AbsoluteUri);
                             }
-                            foreach (var uri in AssetInfo.GetHlsv3Uris(locator, SelectedSE))
+                            foreach (var uri in AssetInfo.GetHlsv3Uris(locator, SelectedSE, null, true))
                             {
                                 sb.AppendLine(AssetInfo._hls_v3 + " : ");
                                 sb.AppendLine(uri.AbsoluteUri);

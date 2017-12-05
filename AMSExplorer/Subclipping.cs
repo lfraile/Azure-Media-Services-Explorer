@@ -203,7 +203,7 @@ namespace AMSExplorer
 
         private SubClipConfiguration GetSubclippingInternalConfiguration()
         {
-            if (radioButtonArchiveAllBitrate.Checked || radioButtonArchiveTopBitrate.Checked) // Archive, no reencoding
+            if (radioButtonArchiveAllBitrate.Checked || radioButtonArchiveTopBitrate.Checked || radioButtonArchiveLowBitrate.Checked) // Archive, no reencoding
             {
                 /*
                 SAMPLE JSON
@@ -253,8 +253,24 @@ namespace AMSExplorer
                 // Sources
                 obj.Sources = new JArray() as dynamic;
 
-                string filter = radioButtonArchiveAllBitrate.Checked ? "*" : "TopBitrate";
-                string mode = radioButtonArchiveAllBitrate.Checked ? "ArchiveAllBitrates" : "ArchiveTopBitrate";
+                string filter;
+                string mode;
+
+                if (radioButtonArchiveAllBitrate.Checked)
+                {
+                    filter = "*";
+                    mode = "ArchiveAllBitrates";
+                }
+                else if (radioButtonArchiveTopBitrate.Checked)
+                {
+                    filter = "TopBitrate";
+                    mode = "ArchiveTopBitrate";
+                }
+                else
+                {
+                    filter = "LowestBitrate";
+                    mode = "ArchiveLowestBitrate";
+                }
 
                 dynamic stream_a = new JObject();
                 stream_a.Type = "AudioStream";
@@ -493,7 +509,10 @@ namespace AMSExplorer
             }
             else if ((radioButtonArchiveAllBitrate.Checked && senderr.Name == radioButtonArchiveAllBitrate.Name) // archive all bitrate
                 ||
-                (radioButtonArchiveTopBitrate.Checked && senderr.Name == radioButtonArchiveTopBitrate.Name))  // archive top bitrate
+                (radioButtonArchiveTopBitrate.Checked && senderr.Name == radioButtonArchiveTopBitrate.Name) // archive top bitrate
+                 ||
+                (radioButtonArchiveLowBitrate.Checked && senderr.Name == radioButtonArchiveLowBitrate.Name) // archive low bitrate
+                )  
             {
                 checkBoxTrimming.Checked = backupCheckboxTrim;
                 checkBoxTrimming.Enabled = true;
@@ -598,7 +617,7 @@ namespace AMSExplorer
                 }
                 if (myuri != null)
                 {
-                    string myurl = AssetInfo.DoPlayBackWithStreamingEndpoint(typeplayer: PlayerType.AzureMediaPlayerFrame, Urlstr: myuri.ToString(), DoNotRewriteURL: true, context: _context, formatamp: AzureMediaPlayerFormats.Auto, technology: AzureMediaPlayerTechnologies.Auto, launchbrowser: false, UISelectSEFiltersAndProtocols: false, mainForm: _mainform);
+                    string myurl = AssetInfo.DoPlayBackWithStreamingEndpoint(typeplayer: PlayerType.AzureMediaPlayerFrame, Urlstr: AssetInfo.RW(myuri, https:true).ToString(), DoNotRewriteURL: true, context: _context, formatamp: AzureMediaPlayerFormats.Auto, technology: AzureMediaPlayerTechnologies.Auto, launchbrowser: false, UISelectSEFiltersAndProtocols: false, mainForm: _mainform);
                     webBrowserPreview.Url = new Uri(myurl);
                 }
             }
