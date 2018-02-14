@@ -1139,6 +1139,38 @@ namespace AMSExplorer
             DoRefresh();
         }
 
+        private void buttonRefreshTab_Click(object sender, EventArgs e)
+        {
+            switch (tabControlMain.SelectedTab.Name)
+            {
+                case "tabPageAssets":
+                    DoRefreshGridAssetV(false);
+                    break;
+                case "tabPageFilters":
+                    DoRefreshGridFiltersV(false);
+                    break;
+                case "tabPageTransfers":
+                    DoRefreshGridIngestManifestV(false);
+                    break;
+                case "tabPageJobs":
+                    DoRefreshGridJobV(false);
+                    break;
+                case "tabPageLive":
+                    DoRefreshGridChannelV(false);
+                    DoRefreshGridProgramV(false);
+                    break;
+                case "tabPageProcessors":
+                    DoRefreshGridProcessorV(false);
+                    break;
+                case "tabPageOrigins":
+                    DoRefreshGridStreamingEndpointV(false);
+                    break;
+                case "tabPageStorage":
+                    DoRefreshGridStorageV(false);
+                    break;
+            }
+        }
+
         private void DoRefresh()
         {
             _context = Program.ConnectAndGetNewContext(_credentials);
@@ -3615,10 +3647,8 @@ namespace AMSExplorer
             }
         }
 
-        private async void ProcessExportAssetToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, Dictionary<string, string> storagekeys, List<IAsset> SourceAssets, string TargetAssetName, TransferEntryResponse response, CloudMediaContext DestinationContext, bool DeleteSourceAssets = false, bool CopyDynEnc = false, bool ReWriteLAURL = false, bool CloneAssetFilters = false, bool CloneStreamingLocators = false, bool UnpublishSourceAsset = false)
-
+        private async void ProcessExportAssetToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, Dictionary<string, string> storagekeys, List<IAsset> SourceAssets, string TargetAssetName, TransferEntryResponse response, CloudMediaContext DestinationContext, bool DeleteSourceAssets = false, bool CopyDynEnc = false, bool ReWriteLAURL = false, bool CloneAssetFilters = false, bool CloneStreamingLocators = false, bool UnpublishSourceAsset = false, bool CopyAltId = false)
         {
-
             // If upload in the queue, let's wait our turn
             DoGridTransferWaitIfNeeded(response.Id);
             if (response.token.IsCancellationRequested)
@@ -3636,23 +3666,14 @@ namespace AMSExplorer
             ILocator DestinationLocator;
             IAssetFile[] ismAssetFile;
 
-            /*
-            try
-            {
-                DestinationContext = Program.ConnectAndGetNewContext(DestinationCredentialsEntry);
-            }
-            catch (Exception ex)
-            {
-                TextBoxLogWriteLine("Error", true);
-                TextBoxLogWriteLine(ex);
-                DoGridTransferDeclareError(response.Id, ex);
-                return;
-            }
-            */
-
             try
             {
                 TargetAsset = DestinationContext.Assets.Create(TargetAssetName, DestinationStorageAccount, AssetCreationOptions.None);
+                if (CopyAltId)
+                {
+                    TargetAsset.AlternateId = SourceAssets.FirstOrDefault().AlternateId;
+                    TargetAsset.Update();
+                }
             }
             catch (Exception ex)
             {
@@ -3704,7 +3725,6 @@ namespace AMSExplorer
                     CloudBlobClient SourceCloudBlobClient;
                     IAccessPolicy readpolicy;
                     ILocator SourceLocator;
-                    Uri sourceUri;
                     CloudBlobContainer SourceCloudBlobContainer;
 
                     try
@@ -3712,12 +3732,11 @@ namespace AMSExplorer
                         // let's get cloudblobcontainer for source
                         SourceCloudStorageAccount = new CloudStorageAccount(new StorageCredentials(SourceAsset.StorageAccountName, storagekeys[SourceAsset.StorageAccountName]), _credentials.ReturnStorageSuffix(), true);
                         SourceCloudBlobClient = SourceCloudStorageAccount.CreateCloudBlobClient();
-                        readpolicy = _context.AccessPolicies.Create("readpolicy", TimeSpan.FromDays(1), AccessPermissions.Read);
-                        SourceLocator = _context.Locators.CreateLocator(LocatorType.Sas, SourceAsset, readpolicy);
+                        //readpolicy = _context.AccessPolicies.Create("readpolicy", TimeSpan.FromDays(1), AccessPermissions.Read);
+                        //SourceLocator = _context.Locators.CreateLocator(LocatorType.Sas, SourceAsset, readpolicy);
 
                         // Get the asset container URI and copy blobs from mediaContainer to assetContainer.
-                        sourceUri = new Uri(SourceLocator.Path);
-                        SourceCloudBlobContainer = SourceCloudBlobClient.GetContainerReference(sourceUri.Segments[1]);
+                        SourceCloudBlobContainer = SourceCloudBlobClient.GetContainerReference(SourceAsset.Uri.Segments[1]);
 
                     }
                     catch (Exception ex)
@@ -3730,6 +3749,13 @@ namespace AMSExplorer
                         TargetAsset.Delete();
                         return;
                     }
+
+                    var signature = SourceCloudBlobContainer.GetSharedAccessSignature(new SharedAccessBlobPolicy
+                    {
+                        Permissions = SharedAccessBlobPermissions.Read,
+                        SharedAccessExpiryTime = DateTime.UtcNow.AddHours(24),
+                        SharedAccessStartTime = DateTime.UtcNow.AddMinutes(-5)
+                    });
 
 
                     ErrorCopyAsset = false;
@@ -3756,8 +3782,6 @@ namespace AMSExplorer
                         && assetFilesToCopy.Where(af => af.Name.ToUpper().EndsWith(".ISM")).Count() == 1
                         ) // only 2 files with extensions, and these files are ISMC and ISM
                     {
-                        // assetFilesToCopy = SourceAsset.AssetFiles.ToList().Where(af => !af.Name.StartsWith("audio_") && !af.Name.StartsWith("video_") && !af.Name.StartsWith("scte35_"));
-                        //  var assetFilesLiveFolders = SourceAsset.AssetFiles.ToList().Where(af => af.Name.StartsWith("audio_") || af.Name.StartsWith("video_") || af.Name.StartsWith("scte35_"));
 
                         // let read the storage to make sure it's not a directory
                         var mediablobsFolders = SourceCloudBlobContainer.ListBlobs().ToList().Where(b => b.GetType() == typeof(CloudBlobDirectory)).Select(a => (a as CloudBlobDirectory).Prefix);
@@ -3789,6 +3813,7 @@ namespace AMSExplorer
 
                             try
                             {
+
                                 sourceCloudBlockBlob = SourceCloudBlobContainer.GetBlockBlobReference(file.Name);
                                 // TO DO: chek if this is a folder or a file
                                 sourceCloudBlockBlob.FetchAttributes();
@@ -3808,7 +3833,9 @@ namespace AMSExplorer
                                         {
                                             // exception if Blob does not exist, which is fine
                                         }
-                                        string stringOperation = await destinationCloudBlockBlob.StartCopyAsync(file.GetSasUri(), response.token);
+
+                                        string stringOperation = await destinationCloudBlockBlob.StartCopyAsync(new Uri(sourceCloudBlockBlob.Uri.AbsoluteUri + signature));
+
                                         bool Cancelled = false;
 
                                         CloudBlockBlob blob;
@@ -3843,7 +3870,6 @@ namespace AMSExplorer
                                             ErrorCopyAsset = true;
                                             break;
                                         }
-
 
                                         destinationCloudBlockBlob.FetchAttributes();
                                         destinationAssetFile.ContentFileSize = sourceCloudBlockBlob.Properties.Length;
@@ -3909,7 +3935,13 @@ namespace AMSExplorer
                                         {
                                             CloudBlockBlob targetBlob = DestinationCloudBlobContainer.GetBlockBlobReference(blockblob.Name);
                                             // copy using src blob as SAS
-                                            mylistresults.Add(targetBlob.StartCopyAsync(new Uri(blockblob.Uri.AbsoluteUri + SourceLocator.ContentAccessComponent), response.token));
+                                            //mylistresults.Add(targetBlob.StartCopyAsync(new Uri(blockblob.Uri.AbsoluteUri + SourceLocator.ContentAccessComponent), response.token));
+                                            mylistresults.Add(targetBlob.StartCopyAsync(new Uri(blockblob.Uri.AbsoluteUri + signature), response.token));
+
+                                            //string stringOperation = await destinationCloudBlockBlob.StartCopyAsync(new Uri(sourceCloudBlockBlob.Uri.AbsoluteUri + signature));
+
+
+
                                         }
                                     }
                                 }
@@ -3919,7 +3951,7 @@ namespace AMSExplorer
                                 {
                                     TextBoxLogWriteLine("Copying fragblobs directory '{0}'....", dir.Prefix);
 
-                                    mylistresults.AddRange(AssetInfo.CopyBlobDirectory(dir, DestinationCloudBlobContainer, SourceLocator.ContentAccessComponent, response.token));
+                                    mylistresults.AddRange(AssetInfo.CopyBlobDirectory(dir, DestinationCloudBlobContainer, signature /*SourceLocator.ContentAccessComponent*/, response.token));
 
                                     if (mylistresults.Count > 0)
                                     {
@@ -3945,8 +3977,8 @@ namespace AMSExplorer
                         }
                     }
 
-                    SourceLocator.Delete();
-                    readpolicy.Delete();
+                    //SourceLocator.Delete();
+                    //readpolicy.Delete();
                 }
                 else
                 {
@@ -4323,7 +4355,7 @@ namespace AMSExplorer
 
 
 
-        private async void ProcessCloneProgramToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, IProgram sourceProgram, bool CopyDynEnc, bool RewriteLAURL, bool CloneLocators, bool CloneAssetFilters)
+        private async void ProcessCloneProgramToAnotherAMSAccount(CredentialsEntry DestinationCredentialsEntry, string DestinationStorageAccount, IProgram sourceProgram, bool CopyDynEnc, bool RewriteLAURL, bool CloneLocators, bool CloneAssetFilters, bool copyAltId)
         {
             TextBoxLogWriteLine("Starting the program cloning process.");
 
@@ -4360,6 +4392,12 @@ namespace AMSExplorer
             // Cloned asset creation
             IAsset clonedAsset = DestinationContext.Assets.Create(sourceProgram.Asset.Name, DestinationStorageAccount, AssetCreationOptions.None);
             TextBoxLogWriteLine(string.Format("Cloned asset {0} created.", sourceProgram.Asset.Name));
+
+            if (copyAltId)
+            {
+                clonedAsset.AlternateId = sourceProgram.Asset.AlternateId;
+                clonedAsset.Update();
+            }
 
             if (CopyDynEnc)
             {
@@ -8023,6 +8061,16 @@ namespace AMSExplorer
                 processAssetsWithAzureMediaVideoAnnotatorToolStripMenuItem.Enabled =
                 processAssetsWithAzureMediaVideoAnnotatorToolStripMenuItem1.Enabled = false;
             }
+
+            switch (tabControlMain.SelectedTab.Name)
+            {
+                case "tabPageChart":
+                    buttonRefreshTab.Enabled = false;
+                    break;
+                default:
+                    buttonRefreshTab.Enabled = true;
+                    break;
+            }
         }
 
         private void EnableChildItems(ref ToolStripMenuItem menuitem, bool bflag)
@@ -10690,8 +10738,10 @@ namespace AMSExplorer
                                 bool NeedToDisplayFairPlayLicense = form3_CENC.GetNumberOfAuthorizationPolicyOptionsFairPlay > 0;
 
                                 List<AddDynamicEncryptionFrame4> form4list = new List<AddDynamicEncryptionFrame4>();
+                                List<AddDynamicEncryptionFrame5_FairplayLicense> form5list = new List<AddDynamicEncryptionFrame5_FairplayLicense>();
 
-                                bool usercancelledform4 = false;
+
+                                bool usercancelledform4or5 = false;
 
                                 if (!form1.SelectExistingPolicies) // user did not select an existing authorization policy
                                 {
@@ -10706,17 +10756,30 @@ namespace AMSExplorer
                                             step++;
                                             form4list.Add(form4);
                                             tokensymmetrickey = form4.SymmetricKey;
+                                            AddDynamicEncryptionFrame5_FairplayLicense form5_FairPlayLicense = new AddDynamicEncryptionFrame5_FairplayLicense(step, i + 1, i == (form3_CENC.GetNumberOfAuthorizationPolicyOptionsFairPlay - 1)) { Left = form3_CENC.Left, Top = form3_CENC.Top };
+                                            string tokentype = form4.GetKeyRestrictionType == ContentKeyRestrictionType.TokenRestricted ? " " + form4.GetDetailedTokenType.ToString() : "";
+
+                                            step++;
+
+                                            if (form5_FairPlayLicense.ShowDialog() == DialogResult.OK) // let's display the dialog box to configure the playready license
+                                            {
+                                                form5list.Add(form5_FairPlayLicense);
+                                            }
+                                            else
+                                            {
+                                                usercancelledform4or5 = true;
+                                            }
                                         }
                                         else
                                         {
-                                            usercancelledform4 = true;
+                                            usercancelledform4or5 = true;
                                         }
                                     }
                                 }
 
-                                if (!usercancelledform4)
+                                if (!usercancelledform4or5)
                                 {
-                                    DoDynamicEncryptionAndKeyDeliveryWithCENCCbcs(SelectedAssets, form1, form2_CENC_Cbcs, form3_ExistingPolicies, form3_CENC, form4list, true);
+                                    DoDynamicEncryptionAndKeyDeliveryWithCENCCbcs(SelectedAssets, form1, form2_CENC_Cbcs, form3_ExistingPolicies, form3_CENC, form4list, form5list, true);
                                     oktoproceed = true;
                                     dataGridViewAssetsV.PurgeCacheAssets(SelectedAssets);
                                     dataGridViewAssetsV.AnalyzeItemsInBackground();
@@ -11148,7 +11211,7 @@ namespace AMSExplorer
             }
         }
 
-        private void DoDynamicEncryptionAndKeyDeliveryWithCENCCbcs(List<IAsset> SelectedAssets, AddDynamicEncryptionFrame1 form1, AddDynamicEncryptionFrame2_CENC_Cbcs_KeyConfig form2_CENC_cbcs, AddDynamicEncryptionFrame3_ExistingPolicies form3_ExistingPolicies, AddDynamicEncryptionFrame3_CENC_Cbcs_Delivery form3_CENC, List<AddDynamicEncryptionFrame4> form4list, bool DisplayUI)
+        private void DoDynamicEncryptionAndKeyDeliveryWithCENCCbcs(List<IAsset> SelectedAssets, AddDynamicEncryptionFrame1 form1, AddDynamicEncryptionFrame2_CENC_Cbcs_KeyConfig form2_CENC_cbcs, AddDynamicEncryptionFrame3_ExistingPolicies form3_ExistingPolicies, AddDynamicEncryptionFrame3_CENC_Cbcs_Delivery form3_CENC, List<AddDynamicEncryptionFrame4> form4list, List<AddDynamicEncryptionFrame5_FairplayLicense> form5list, bool DisplayUI)
         {
             bool ErrorCreationKey = false;
             IContentKey formerkey = null;
@@ -11225,6 +11288,8 @@ namespace AMSExplorer
 
             foreach (IAsset AssetToProcess in SelectedAssets)
             {
+                bool fairplayPersistent = false;
+
                 if (AssetToProcess != null)
                 {
                     IContentKey currentAssetKey = null;
@@ -11292,12 +11357,23 @@ namespace AMSExplorer
                             currentAssetKey.AuthorizationPolicyId = contentKeyAuthorizationPolicy.Id;
                             currentAssetKey = currentAssetKey.UpdateAsync().Result;
 
-                            string FairPlayLicenseDeliveryConfig = DynamicEncryption.ConfigureFairPlayPolicyOptions(_context, form3_CENC.FairPlayASK, form3_CENC.FairPlayIV, form3_CENC.FairPlayCertificate);
 
                             foreach (var form4 in form4list)
                             { // for each option
 
                                 IContentKeyAuthorizationPolicyOption policyOption = null;
+
+                                // Fairplay persistent or not
+                                var isPersistent = form5list[form4list.IndexOf(form4)].EnablePersistent;
+                                if (isPersistent)
+                                {
+                                    fairplayPersistent = true;
+                                }
+                                var rentalDuration = form5list[form4list.IndexOf(form4)].RentalDuration;
+
+
+                                string FairPlayLicenseDeliveryConfig = DynamicEncryption.ConfigureFairPlayPolicyOptions(_context, form3_CENC.FairPlayASK, form3_CENC.FairPlayIV, form3_CENC.FairPlayCertificate, isPersistent, rentalDuration);
+
                                 try
                                 {
                                     string tokentype = form4.GetKeyRestrictionType == ContentKeyRestrictionType.TokenRestricted ? " " + form4.GetDetailedTokenType.ToString() : "";
@@ -11411,7 +11487,8 @@ namespace AMSExplorer
                                     fairplayAcquisitionUrl: form3_CENC.GetNumberOfAuthorizationPolicyOptionsFairPlay > 0 ? null : form3_CENC.FairPlayLAurl,
                                     fairplayAcquisitionURLFinal: form3_CENC.FairPlayFinalLAurl,
                                     iv_if_externalserver: myIV,
-                                    UseSKDForAMSLAURL: form3_CENC.AMSLAURLSchemeSKD
+                                    UseSKDForAMSLAURL: form3_CENC.AMSLAURLSchemeSKD,
+                                    FairplayAllowPersistentLicense: fairplayPersistent
                                        );
 
                                 TextBoxLogWriteLine("Created asset delivery policy '{0}' for asset '{1}'.", DelPol.AssetDeliveryPolicyType, AssetToProcess.Name);
@@ -13013,22 +13090,25 @@ namespace AMSExplorer
             if (form.ShowDialog() == DialogResult.OK)
             {
                 var newdestinationcredentials = form.DestinationLoginCredentials;
+
+                // for service principal, the SP crednetials are asked in the previous form
+                /*
+                
                 if (newdestinationcredentials.UseAADServicePrincipal)
                 {
+                    var spcrendentialsform = new AMSLoginServicePrincipal();
+                    if (spcrendentialsform.ShowDialog() == DialogResult.OK)
                     {
-                        var spcrendentialsform = new AMSLoginServicePrincipal();
-                        if (spcrendentialsform.ShowDialog() == DialogResult.OK)
-                        {
-                            newdestinationcredentials.ADSPClientId = spcrendentialsform.ClientId;
-                            newdestinationcredentials.ADSPClientSecret = spcrendentialsform.ClientSecret;
-                        }
-                        else
-                        {
-                            return;
-                        }
+                        newdestinationcredentials.ADSPClientId = spcrendentialsform.ClientId;
+                        newdestinationcredentials.ADSPClientSecret = spcrendentialsform.ClientSecret;
                     }
+                    else
+                    {
+                        return;
+                    }
+                   
                 }
-
+                */
 
                 bool usercanceled = false;
                 var storagekeys = BuildStorageKeyDictionary(SelectedAssets, newdestinationcredentials, ref usercanceled, _context.DefaultStorageAccount.Name, _credentials.DefaultStorageKey, form.DestinationStorageAccount);
@@ -13046,8 +13126,6 @@ namespace AMSExplorer
                         return;
                     }
 
-
-
                     if (!form.SingleDestinationAsset) // standard mode: 1:1 asset copy
                     {
                         foreach (IAsset asset in SelectedAssets)
@@ -13055,7 +13133,7 @@ namespace AMSExplorer
                             var response = DoGridTransferAddItem(string.Format("Copy asset '{0}' to account '{1}'", asset.Name, AMSLogin.ReturnAccountName(form.DestinationLoginCredentials)), TransferType.ExportToOtherAMSAccount, false);
                             // Start a worker thread that does asset copy.
                             Task.Factory.StartNew(() =>
-                            ProcessExportAssetToAnotherAMSAccount(newdestinationcredentials, form.DestinationStorageAccount, storagekeys, new List<IAsset>() { asset }, form.CopyAssetName.Replace(Constants.NameconvAsset, asset.Name), response, DestinationContext, form.DeleteSourceAsset, form.CopyDynEnc, form.RewriteLAURL, form.CloneAssetFilters, form.CloneLocators, form.UnpublishSourceAsset), response.token);
+                            ProcessExportAssetToAnotherAMSAccount(newdestinationcredentials, form.DestinationStorageAccount, storagekeys, new List<IAsset>() { asset }, form.CopyAssetName.Replace(Constants.NameconvAsset, asset.Name), response, DestinationContext, form.DeleteSourceAsset, form.CopyDynEnc, form.RewriteLAURL, form.CloneAssetFilters, form.CloneLocators, form.UnpublishSourceAsset, form.CopyAlternateId), response.token);
                         }
                     }
                     else // merge all assets into a single asset
@@ -14175,7 +14253,7 @@ namespace AMSExplorer
                     foreach (IProgram program in SelectedPrograms)
                     {
                         // Start a worker thread that does asset copy.
-                        Task.Factory.StartNew(() => ProcessCloneProgramToAnotherAMSAccount(form.DestinationLoginCredentials, form.DestinationStorageAccount, program, form.CopyDynEnc, form.RewriteLAURL, form.CloneLocators, form.CloneAssetFilters));
+                        Task.Factory.StartNew(() => ProcessCloneProgramToAnotherAMSAccount(form.DestinationLoginCredentials, form.DestinationStorageAccount, program, form.CopyDynEnc, form.RewriteLAURL, form.CloneLocators, form.CloneAssetFilters, form.CopyAlternateId));
                     }
                 }
             }
